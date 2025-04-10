@@ -1,0 +1,67 @@
+*******************
+GA1 # of Evictions: 22
+GA1 # of Generations to Convergence: 126
+*******************
+GA2 # of Evictions: 21
+GA2 # of Generations to Convergence: 120
+*******************
+GA3 # of Evictions: 22
+GA3 # of Generations to Convergence: 94
+*******************
+GA4 # of Evictions: 25
+GA4 # of Generations to Convergence: 165
+*******************
+GA5 # of Evictions: 25
+GA5 # of Generations to Convergence: 93
+*******************
+GA6 # of Evictions: 28
+GA6 # of Generations to Convergence: 67
+*******************
+GA7 # of Evictions: 22
+GA7 # of Generations to Convergence: 111
+*******************
+GA8 # of Evictions: 26
+GA8 # of Generations to Convergence: 146
+*******************
+GA9 # of Evictions: 24
+GA9 # of Generations to Convergence: 147
+*******************
+GA10 # of Evictions: 27
+GA10 # of Generations to Convergence: 142
+*******************
+GA11 # of Evictions: 22
+GA11 # of Generations to Convergence: 121
+*******************
+GA12 # of Evictions: 22
+GA12 # of Generations to Convergence: 152
+*******************
+GA13 # of Evictions: 26
+GA13 # of Generations to Convergence: 110
+*******************
+GA14 # of Evictions: 22
+GA14 # of Generations to Convergence: 114
+*******************
+GA15 # of Evictions: 27
+GA15 # of Generations to Convergence: 114
+*******************
+GA16 # of Evictions: 21
+GA16 # of Generations to Convergence: 158
+*******************
+GA17 # of Evictions: 23
+GA17 # of Generations to Convergence: 98
+*******************
+GA18 # of Evictions: 22
+GA18 # of Generations to Convergence: 158
+*******************
+GA19 # of Evictions: 25
+GA19 # of Generations to Convergence: 80
+*******************
+GA20 # of Evictions: 28
+GA20 # of Generations to Convergence: 94
+*******************
+Best Fitness: 21
+Worst Fitness: 28
+Average Fitness: 24
+Most # of Generation to Converge: 165
+Least # of Generation to Converge: 67
+Average # of Generations to Converge: 120.5
