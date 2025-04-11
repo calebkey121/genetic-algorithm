@@ -1,0 +1,30 @@
+├── include/
+│   ├── Configuration.h
+│   ├── GeneticAlgorithm.h
+│   ├── Genome.h
+│   ├── crossover/
+│   │   ├── CrossoverStrategy.h
+│   │   ├── UniformCrossover.h
+│   │   ├── TwoPointCrossover.h
+│   │   └── ...
+│   ├── selection/
+│   │   ├── SelectionStrategy.h
+│   │   └── ...
+│   ├── mutation/
+│   │   ├── MutationStrategy.h
+│   │   └── ...
+│   ├── cache/
+│   │   ├── CacheSimulator.h
+│   │   └── LRUCache.h
+│   └── utils/
+│       ├── RandomUtils.h
+│       ├── FileManager.h
+│       └── ResultAnalyzer.h
+├── src/
+│   ├── main.cpp
+│   ├── GeneticAlgorithm.cpp
+│   ├── Genome.cpp
+│   ├── crossover/
+│   │   ├── UniformCrossover.cpp
+│   │   └── ...
+│   ├── ...

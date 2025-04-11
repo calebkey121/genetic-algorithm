@@ -55,23 +55,26 @@ class Genome {
 
 /***********************************************************************************************************/
 class GenAlg {
-
-    public:
-        vector<bitset<ADDRESS_SIZE>> addressVector;
-        string crossoverType;
-        int currentGen;
-        int solFitness;
-        string Name;
-        vector<Genome> population;
-        bool solutionFound;
-        ofstream output;
-        GenAlg(string name, vector<bitset<ADDRESS_SIZE>> addressVector, string crossoverType): Name(name), addressVector(addressVector), crossoverType(crossoverType){};
-        void run();
-        void runWithOF();
-        string displayPop();
-        string displaySolution();
-        int getFitness(){return solFitness;};
-        int getGen(){return currentGen;};
+public:
+    vector<bitset<ADDRESS_SIZE>> addressVector;
+    string crossoverType;
+    int currentGen;
+    int solFitness;
+    string Name;
+    vector<Genome> population;
+    bool solutionFound;
+    ofstream output;
+    
+    GenAlg(string name, vector<bitset<ADDRESS_SIZE>> addressVector, string crossoverType)
+        : Name(name), addressVector(addressVector), crossoverType(crossoverType) {};
+    
+    // Unified run method with optional output parameter
+    void run(bool writeOutput = false);
+    
+    string displayPop();
+    string displaySolution();
+    int getFitness() { return solFitness; };
+    int getGen() { return currentGen; };
 };
 /***********************************************************************************************************/
 
