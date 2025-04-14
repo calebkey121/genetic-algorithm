@@ -1,4 +1,4 @@
-This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
 
 ================================================================
 File Summary
@@ -36,7 +36,6 @@ Notes:
 ------
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: **/*.txt
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -47,826 +46,1362 @@ Additional Info:
 ================================================================
 Directory Structure
 ================================================================
-genetic_algorithm.cpp
-genetic_algorithm.h
+include/
+  constants.h
+  genetic_algorithm.h
+  genome.h
+  lru_cache.h
+  utilities.h
+src/
+  genetic_algorithm.cpp
+  genome.cpp
+  lru_cache.cpp
+  main.cpp
+  utilities.cpp
+.gitignore
+CMakeLists.txt
 LICENSE
 README.md
+test.txt
 
 ================================================================
 Files
 ================================================================
 
 ================
-File: genetic_algorithm.cpp
+File: include/genome.h
 ================
-#include "genetic_algorithm.h"
+#ifndef GENOME_H
+#define GENOME_H
 
-using namespace std;
+#include <vector>
+#include <bitset>
+#include <string>
+#include <utility>
+#include "constants.h"
 
-/***********************************************************************************************************/
-/********************************************************************************************
-Uniform Crossover
-Mates: This crossover requires two parents
-Pick Order: A binary number, with length equaling the number of genes, will direct each gene
-            to its designated offspring; with '0' representing the first mate's gene, and '1' 
-            representing the other
-Offspring: This operation produces 2 offspring, one following the exact pick order, and the
-           other following the exact opposite of the pick order
-Example:
-Mates: 'Hello' | 'Piano'
-Pick Order: 11001
-Offspring: 'Pillo' | 'Heano'
-*********************************************************************************************/
-pair<Genome, Genome> Genome::UX(Genome mate){
+#define MUTATION_CHANCE 5
+#define SEG_X_CHANCE 40
+const std::string genes = "10";
+
+// Forward declaration to avoid circular include if LRUCache needs Genome
+class LRUCache;
+namespace Utils {
+    char randChar();
+}
+
+class Genome {
+public:
+    std::bitset<Constants::SOLUTION_SIZE> Chromosome;
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> addressVector;
+    int Fitness;
+
+    // Constructor
+    Genome(std::bitset<Constants::SOLUTION_SIZE> chromosome, const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec);
+
+    // Fitness calculation
+    int cal_fitness();
+
+    // Crossover operators
+    std::pair<Genome, Genome> UX(Genome mate);
+    std::pair<Genome, Genome> TWOPX(Genome mate);
+    std::pair<Genome, Genome> SX(Genome mate);
+    std::pair<Genome, Genome> BAX(Genome mate);
+
+    // Comparison operator for sorting
+    bool operator<(const Genome& other) const; // Mark as const
+};
+
+#endif // GENOME_H
+
+================
+File: include/lru_cache.h
+================
+#ifndef LRU_CACHE_H
+#define LRU_CACHE_H
+
+#include <list>
+#include <unordered_map>
+#include <vector>
+#include <bitset>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include "constants.h"
+
+// Forward declare utility function if needed directly
+namespace Utils {
+    std::string addressToHex(std::bitset<Constants::ADDRESS_SIZE> address);
+}
+
+// --- LRUSet Class (Represents one set in the cache) ---
+class LRUSet {
+private:
+    using Address = std::bitset<Constants::ADDRESS_SIZE>;
+    using ListIterator = std::list<Address>::iterator;
+
+    std::list<Address> cacheList; // Stores addresses in LRU order (front = MRU, back = LRU)
+    std::unordered_map<Address, ListIterator> cacheMap; // Maps address to its position in the list
+    size_t capacity; // Number of ways (blocks) in this set
+
+public:
+    explicit LRUSet(size_t ways); // Constructor takes capacity (ways)
+    LRUSet() : LRUSet(Constants::DEFAULT_CACHE_WAYS) {} // Default constructor if needed
+
+    bool refer(const Address& addr); // Returns true if eviction occurred
+    std::string display() const;     // Returns string representation of the set
+    void clear();                    // Clears the set
+    size_t getSize() const;          // Returns current number of items in set
+};
+
+// --- LRUCache Class (Represents the entire cache) ---
+class LRUCache {
+private:
+    std::vector<LRUSet> sets; // Array of cache sets
+    size_t numSets;
+    size_t ways;
+    int evictionCount;
+
+public:
+    // Constructor takes number of sets and ways per set
+    LRUCache(size_t num_sets = Constants::DEFAULT_CACHE_SETS, size_t ways_per_set = Constants::DEFAULT_CACHE_WAYS);
+
+    void index(int set_index, const std::bitset<Constants::ADDRESS_SIZE>& value); // Access cache
+    int getEvictionCount() const;
+    void reset();                 // Reset cache state
+    std::string display() const; // Display entire cache state
+
+    // Static simulation method (consider moving this outside later)
+    static void simulateCache(const std::string& name,
+                              const std::string& crossoverType,
+                              const std::bitset<Constants::SOLUTION_SIZE>& chromosome,
+                              const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addressVector);
+};
+
+#endif // LRU_CACHE_H
+
+================
+File: include/utilities.h
+================
+#ifndef UTILITIES_H
+#define UTILITIES_H
+
+#include <vector>
+#include <string>
+#include <bitset>
+#include <sstream>
+#include "constants.h"
+
+namespace Utils {
+
+    // --- Random Number Generation ---
+    // Initialize the random number generator (declaration)
+    void initialize_random_seed();
+    // Generate a random integer in a range [min, max] (inclusive)
+    int randRange(int min, int max);
+    // Generate a random character from the defined gene pool
+    char randChar();
+
+    // --- Genome/Problem Specific Utilities ---
+    // Create a random genome string of specified length
+    std::string newGenome(std::size_t length = Constants::SOLUTION_SIZE);
+    // Generate a vector of random addresses (simulating locality)
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> randAddressVector(std::size_t count = 100, int locality_level = 4);
+
+    // --- Formatting and Display ---
+    // Convert an address bitset to a hex string
+    std::string addressToHex(std::bitset<Constants::ADDRESS_SIZE> address);
+    // Display the address vector (for debugging)
+    void displayAddressVector(const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addressVector);
+
+    // --- Filesystem Utilities ---
+    // Creates a directory if it doesn't exist. Returns true on success.
+    bool createDirectory(const std::string& path);
+
+
+}
+
+#endif // UTILITIES_H
+
+================
+File: src/genome.cpp
+================
+#include "genome.h"
+#include "lru_cache.h"
+#include "utilities.h
+#include <stdexcept>
+#include <cstdlib>
+#include <ctime>
+
+// Constructor Implementation
+Genome::Genome(std::bitset<Constants::SOLUTION_SIZE> chromosome, const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec)
+    : Chromosome(chromosome), addressVector(addrVec)
+{
+    Fitness = cal_fitness(); // Calculate fitness upon construction
+}
+
+
+// --- Crossover Implementations ---
+
+std::pair<Genome, Genome> Genome::UX(Genome mate) {
     // Pseudo: Determine the reigons for inheritance
     //         Generate a random number to determine crossover
     //         Assign offspring gene based on probability - parent A, B, or mutate
-               
-    pair<bitset<SOLUTION_SIZE>, bitset<SOLUTION_SIZE>> offspringBitsets;
+
+    std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
 
     // Reigons for inheritance
-    float parentRangeA = (1 - MUTATION_CHANCE/100) / 2; // this parent (A)
-    float parentRangeB = 1 - MUTATION_CHANCE/100; // mate (B)
+    // Use constexpr or const from constants.h later
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
+    float parentRangeA = (1.0f - mutationRate) / 2.0f; // this parent (A)
+    float parentRangeB = 1.0f - mutationRate;           // mate (B)
 
-    for (int i = 0; i < SOLUTION_SIZE; i++){
-        float p = Tools::randRange(0, 100) / 100;
+    for (int i = 0; i < Constants::SOLUTION_SIZE; i++) {
+        // Replace with <random> later
+        float p = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f; // Higher precision for probability
 
-        if (p < parentRangeA){
+        if (p < parentRangeA) {
             offspringBitsets.first[i] = Chromosome[i];
             offspringBitsets.second[i] = mate.Chromosome[i];
-        }
-        else if (p < parentRangeB){
+        } else if (p < parentRangeB) {
             offspringBitsets.first[i] = mate.Chromosome[i];
             offspringBitsets.second[i] = Chromosome[i];
-        }
-        else { // Mutate
-            offspringBitsets.first[i] = Tools::randChar();
-            offspringBitsets.second[i] = Tools::randChar();
+        } else { // Mutate
+            // Use Utils::randChar() which should use <random> later
+            offspringBitsets.first[i] = (Utils::randChar() == '1');
+            offspringBitsets.second[i] = (Utils::randChar() == '1');
         }
     }
-    pair<Genome, Genome> offspring = make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+    // Pass addressVector by const reference
+    return std::make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+}
 
-    return offspring;
-};
-
-/********************************************************************************************
-Crossover Operation - This example will use 'Uniform Crossover'
-Mates: This crossover requires two parents
-Pick Order: 
-Offspring: 
-*********************************************************************************************/
-pair<Genome, Genome> Genome::TWOPX(Genome mate){
+std::pair<Genome, Genome> Genome::TWOPX(Genome mate) {
     // https://stackoverflow.com/questions/7145583/two-point-crossover-operation
-    // Pseudo: Determine two distinct random gene locations
-    //         Generate a random number to determine crossover
-    //         Assign offspring gene based on probability - parent A, B, or mutate
-               
-    pair<bitset<SOLUTION_SIZE>, bitset<SOLUTION_SIZE>> offspringBitsets;
-    float mutationChance = 1 - MUTATION_CHANCE/100;
+    std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
+    float mutationThreshold = 1.0f - mutationRate;
 
     // Generate two distinct random locations, making sure that B > A
-    int randLocationA = rand() % SOLUTION_SIZE;
-    int randLocationB = rand() % SOLUTION_SIZE;
-    while (randLocationA == randLocationB or randLocationA > randLocationB) {
-        randLocationA = rand() % SOLUTION_SIZE;
-        randLocationB = rand() % SOLUTION_SIZE;
-    }
-    for (int i = 0; i < randLocationA; i++){
-        float p = Tools::randRange(0, 100) / 100;
-        if (p < mutationChance){
-            offspringBitsets.first[i] = Chromosome[i];
-            offspringBitsets.second[i] = mate.Chromosome[i];
-        }
-        else {
-            offspringBitsets.first[i] = Tools::randChar();
-            offspringBitsets.second[i] = Tools::randChar();
-        }
-    }
-    for (int i = randLocationA; i < randLocationB; i++){
-        float p = Tools::randRange(0, 100) / 100;
-        if (p < mutationChance){
-            offspringBitsets.second[i] = Chromosome[i];
-            offspringBitsets.first[i] = mate.Chromosome[i];
-        }
-        else {
-            offspringBitsets.first[i] = Tools::randChar();
-            offspringBitsets.second[i] = Tools::randChar();
-        }
-    }
-    for (int i = randLocationB; i < SOLUTION_SIZE; i++){
-        float p = Tools::randRange(0, 100) / 100;
-        if (p < mutationChance){
-            offspringBitsets.first[i] = Chromosome[i];
-            offspringBitsets.second[i] = mate.Chromosome[i];
-        }
-        else {
-            offspringBitsets.first[i] = Tools::randChar();
-            offspringBitsets.second[i] = Tools::randChar();
-        }
-    }
+    // Replace with <random> later
+    int randLocationA = Utils::randRange(0, Constants::SOLUTION_SIZE - 2); // Ensure A can be < B
+    int randLocationB = Utils::randRange(randLocationA + 1, Constants::SOLUTION_SIZE - 1); // Ensure B > A
 
-    pair<Genome, Genome> offspring = make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+    for (int i = 0; i < Constants::SOLUTION_SIZE; ++i) {
+         // Replace with <random> later
+        float p_mut = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
 
-    return offspring;
-};
-
-/********************************************************************************************
-Crossover Operation - This example will use 'Uniform Crossover'
-Mates: This crossover requires two parents
-Pick Order: 
-Offspring: 
-*********************************************************************************************/
-pair<Genome, Genome> Genome::SX(Genome mate){
-    // 
-    // Pseudo: 
-               
-    pair<bitset<SOLUTION_SIZE>, bitset<SOLUTION_SIZE>> offspringBitsets;
-
-    // Reigons for inheritance
-    float mutationChance = 1 - MUTATION_CHANCE/100;
-    float segmentationChance = mutationChance - (1 - SEG_X_CHANCE/100); // this parent (A)
-
-    bool switchParents = false;
-    for (int i = 0; i < SOLUTION_SIZE; i++){
-        float p = Tools::randRange(0, 100) / 100;
-
-        if (p < segmentationChance){
-            if (switchParents){
-                offspringBitsets.second[i] = mate.Chromosome[i];
+        if (p_mut >= mutationThreshold) { // Mutate
+             offspringBitsets.first[i] = (Utils::randChar() == '1');
+             offspringBitsets.second[i] = (Utils::randChar() == '1');
+        } else { // Crossover
+            if (i < randLocationA || i >= randLocationB) {
+                // Outside crossover points: Offspring1 gets from Parent1 (this), Offspring2 from Parent2 (mate)
                 offspringBitsets.first[i] = Chromosome[i];
-            }
-            else {
+                offspringBitsets.second[i] = mate.Chromosome[i];
+            } else {
+                // Inside crossover points: Offspring1 gets from Parent2 (mate), Offspring2 from Parent1 (this)
                 offspringBitsets.first[i] = mate.Chromosome[i];
                 offspringBitsets.second[i] = Chromosome[i];
             }
         }
-        else if (p < mutationChance){ // Segmentation
-            switchParents = !switchParents;
-            if (switchParents){
-                offspringBitsets.second[i] = mate.Chromosome[i];
-                offspringBitsets.first[i] = Chromosome[i];
+    }
+
+    return std::make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+}
+
+std::pair<Genome, Genome> Genome::SX(Genome mate) {
+     std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
+
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
+    constexpr float segRate = static_cast<float>(Constants::SEG_X_SWITCH_RATE) / 100.0f;
+
+    float mutationThreshold = 1.0f - mutationRate;
+    float segmentationThreshold = segRate; // Chance to switch parent dominance
+
+    bool parent1Dominant = true; // Start with parent1 (this) dominating offspring1
+
+    for (int i = 0; i < Constants::SOLUTION_SIZE; i++) {
+        float p_mut = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
+        float p_seg = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
+
+        if (p_mut >= mutationThreshold) { // Mutate
+            offspringBitsets.first[i] = (Utils::randChar() == '1');
+            offspringBitsets.second[i] = (Utils::randChar() == '1');
+        } else {
+            // Check for segment switch *before* assigning based on dominance
+             if (p_seg < segmentationThreshold) {
+                parent1Dominant = !parent1Dominant; // Switch dominance
+             }
+
+            // Assign genes based on current dominance
+            if (parent1Dominant) {
+                offspringBitsets.first[i] = Chromosome[i];        // Offspring1 gets from Parent1 (this)
+                offspringBitsets.second[i] = mate.Chromosome[i]; // Offspring2 gets from Parent2 (mate)
+            } else {
+                offspringBitsets.first[i] = mate.Chromosome[i]; // Offspring1 gets from Parent2 (mate)
+                offspringBitsets.second[i] = Chromosome[i];        // Offspring2 gets from Parent1 (this)
             }
-            else {
-                offspringBitsets.first[i] = mate.Chromosome[i];
-                offspringBitsets.second[i] = Chromosome[i];
-            }
-        }
-        else { // Mutate
-            offspringBitsets.first[i] = Tools::randChar();
-            offspringBitsets.second[i] = Tools::randChar();
         }
     }
 
-    pair<Genome, Genome> offspring = make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+    return std::make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
+}
 
-    return offspring;
-};
 
-/********************************************************************************************
-Crossover Operation - This example will use 'Uniform Crossover'
-Mates: This crossover requires two parents
-Pick Order: 
-Offspring: 
-*********************************************************************************************/
-pair<Genome, Genome> Genome::BAX(Genome mate){
-    // 
-    // Pseudo: 
+std::pair<Genome, Genome> Genome::BAX(Genome mate) {
+    // Simplified BAX: Chooses between UX and TWOPX based on some criteria
+    // Example criteria: difference in fitness, or a random choice.
 
-    int i = SOLUTION_SIZE - 1;
-    bool parentABit = Chromosome[i];
-    bool parentBBit = mate.Chromosome[i];
-    if (parentABit != parentBBit){
-        float p = Tools::randRange(0, 100) / 100;
-        if (p < 0.5){
-            return this->UX(mate);
-        }
-        else {
-            return this->TWOPX(mate);
-        }
-    }
-    else if (parentABit == true){
+    // Replace with <random> later
+    float p = static_cast<float>(Utils::randRange(0, 100)) / 100.0f;
+    if (p < 0.5f) {
         return this->UX(mate);
-    }
-    else {
+    } else {
         return this->TWOPX(mate);
     }
-};
+}
 
-// Fittness score = the number of characters in string which differ from target
-// The lower, the better score
-int Genome::cal_fitness(){
-    int fitness = 0;
-    
-    LRUCache cache;
-    bitset<3> index;
-    for (int i = 0; i < 100; i++){
-        index[0] = Chromosome[i * 3];
-        index[1] = Chromosome[(i * 3) + 1];
-        index[2] = Chromosome[(i * 3) + 2];
-        cache.index((int)index.to_ulong(), addressVector.at(i));
+// Fitness Calculation
+int Genome::cal_fitness() {
+    // Fitness score = the number of cache evictions. Lower is better.
+    LRUCache cache; // Create a cache instance for fitness evaluation
+    int fitness = 0; // Lower is better (fewer evictions)
+
+    // Check if addressVector is populated
+    if (addressVector.empty() || addressVector.size() != 100) {
+         // Handle error: address vector not properly initialized or wrong size
+         // Return a very high fitness score to penalize this genome
+         // Or throw an exception, depending on desired behavior
+         return 1000000; // Penalize heavily
     }
- 
+
+    // Ensure chromosome size matches expected indexing logic (100 addresses * 3 bits/index = 300 bits)
+    if (Constants::SOLUTION_SIZE != 300) {
+         // Handle error: SOLUTION_SIZE incompatible with fitness function
+         return 1000001; // Penalize heavily
+    }
+
+
+    std::bitset<3> indexBits;
+    for (int i = 0; i < 100; ++i) {
+        // Check array bounds carefully
+        int base_idx = i * 3;
+        if (base_idx + 2 >= Constants::SOLUTION_SIZE) {
+             // Handle error: Chromosome too short for this loop iteration
+             return 1000002; // Penalize
+        }
+
+        // Extract 3 bits for the index
+        indexBits[0] = Chromosome[base_idx];
+        indexBits[1] = Chromosome[base_idx + 1];
+        indexBits[2] = Chromosome[base_idx + 2];
+
+        // Convert bits to an integer index (0-7)
+        int setIndex = static_cast<int>(indexBits.to_ulong());
+
+        // Access the cache using the calculated index and the address
+        // The index method in LRUCache should return true if an eviction occurred
+        cache.index(setIndex, addressVector.at(i)); // Use .at() for bounds checking
+    }
+
     fitness = cache.getEvictionCount();
-
-    return fitness;    
-};
-
-// Overloading < operator - will help when we sort the population by fitness
-bool Genome::operator<(const Genome& GenomeB)
-{
-    return Fitness < GenomeB.Fitness;
-};
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-void GenAlg::runWithOF(){
-
-    output.open(crossoverType + "_GA_Solution/GA Solution - " + Name + ".txt");
-    output << "*******Solution - " + Name + "*******" << endl;
-
-    currentGen = 0;
-    solutionFound = false;
-    // Initial Population
-    for (int i = 0; i < POP_SIZE; i++){
-        string genomeString = Tools::newGenome();
-        bitset<SOLUTION_SIZE> genome(genomeString);
-        population.push_back(Genome(genome, addressVector));
-    }
-
-    bool convergence = false;
-    int convergenceCounter = 0;
-    int previousFitness = 0;
-    while(!solutionFound and convergence == false){
-        output << "Fitness: " + to_string(population.at(0).Fitness) + "\n";
-        output << "ConvergenceCounter: " + to_string(convergenceCounter) + "\n";
-        sort(population.begin(), population.end());
-
-        // check if target has been found
-        if (population.front().Fitness == 0 || currentGen == MAX_GEN){
-            solutionFound = true;
-            break;
-        }
-
-        // Case - No Solution
-        vector<Genome> newPopulation;
-        // Calculate Elitism
-        int elitismRange = (ELITISM_PERCENTAGE * POP_SIZE) / 100;
-        for(int i = 0; i < elitismRange; i++){
-            newPopulation.push_back(population.at(i));
-        }
-
-        // Selection Process - Random for now
-        int remainingRange = POP_SIZE - elitismRange; // remaining portion of pop
-        for(int i = 0; i < remainingRange; i+=2){ // Each iteration generates two offspring
-            Genome parentA = population.at(Tools::randRange(0, 50));
-            Genome parentB = population.at(Tools::randRange(0, 50));
-            pair<Genome, Genome> offspring = parentA.UX(parentB);
-
-            if (crossoverType == "UX") offspring = parentA.UX(parentB);
-            else if (crossoverType == "2PX") offspring = parentA.TWOPX(parentB);
-            else if (crossoverType == "SX") offspring = parentA.SX(parentB);
-            else if (crossoverType == "BAX") offspring = parentA.BAX(parentB);
-            else {
-                printf("ERROR: No valid crossover selected");
-                exit(1);
-            }
-
-            newPopulation.push_back(offspring.first);
-            if (newPopulation.size() == POP_SIZE) break; // check if second offspring is necessary
-            newPopulation.push_back(offspring.second);
-        }
-
-        // Check for convergence
-        if (previousFitness == population.at(0).Fitness) convergenceCounter++;
-        else {
-            convergenceCounter = 0;
-        }
-        previousFitness = population.at(0).Fitness;
-
-        if (convergenceCounter == CONVERGENCE_ALLOWENCE) convergence = true;
-
-        // Replace old population
-        population = newPopulation;
-
-        // Advance Generation
-        currentGen++;
-
-    }
-
-    // Write solution to output file
-    output << displaySolution();
-    output << "*******Solution - " + Name + "*******" << endl;
-    LRUCache::simulateCache(Name, crossoverType, population.at(0).Chromosome, population.at(0).addressVector);
-    output.close();
-    solFitness = population.at(0).Fitness;
-};
-
-void GenAlg::run(){
-
-    currentGen = 0;
-    solutionFound = false;
-    // Initial Population
-    for (int i = 0; i < POP_SIZE; i++){
-        string genomeString = Tools::newGenome();
-        bitset<SOLUTION_SIZE> genome(genomeString);
-        population.push_back(Genome(genome, addressVector));
-    }
-
-    bool convergence = false;
-    int convergenceCounter = 0;
-    int previousFitness = 0;
-    while(!solutionFound and convergence == false){
-        sort(population.begin(), population.end());
-
-        // check if target has been found
-        if (population.front().Fitness == 0 || currentGen == MAX_GEN){
-            solutionFound = true;
-            break;
-        }
-
-        // Case - No Solution
-        vector<Genome> newPopulation;
-        // Calculate Elitism
-        int elitismRange = (ELITISM_PERCENTAGE * POP_SIZE) / 100;
-        for(int i = 0; i < elitismRange; i++){
-            newPopulation.push_back(population.at(i));
-        }
-
-        // Selection Process - Random for now
-        int remainingRange = POP_SIZE - elitismRange; // remaining portion of pop
-        for(int i = 0; i < remainingRange; i+=2){ // Each iteration generates two offspring
-            Genome parentA = population.at(Tools::randRange(0, 50));
-            Genome parentB = population.at(Tools::randRange(0, 50));
-            pair<Genome, Genome> offspring = parentA.UX(parentB);
-
-            if (crossoverType == "UX") offspring = parentA.UX(parentB);
-            else if (crossoverType == "2PX") offspring = parentA.TWOPX(parentB);
-            else if (crossoverType == "SX") offspring = parentA.SX(parentB);
-            else if (crossoverType == "BAX") offspring = parentA.BAX(parentB);
-            else {
-                printf("ERROR: No valid crossover selected");
-                exit(1);
-            }
-
-            newPopulation.push_back(offspring.first);
-            if (newPopulation.size() == POP_SIZE) break; // check if second offspring is necessary
-            newPopulation.push_back(offspring.second);
-        }
-
-
-        // Check for convergence
-        if (previousFitness == population.at(0).Fitness) convergenceCounter++;
-        else {
-            convergenceCounter = 0;
-        }
-        previousFitness = population.at(0).Fitness;
-
-        if (convergenceCounter == CONVERGENCE_ALLOWENCE) convergence = true;
-
-        // Replace old population
-        population = newPopulation;
-
-        // Advance Generation
-        currentGen++;
-
-    }
-    solFitness = population.at(0).Fitness;
-};
-
-string GenAlg::displayPop(){
-    string returnPop;
-    returnPop += ("Generation: " + to_string(currentGen) + "\n");
-    for (int i = 0; i < population.size(); i++){
-        returnPop += (population.at(i).Chromosome.to_string() + "\n");
-    }
-    returnPop += ("Best Solution: " + population.at(0).Chromosome.to_string() + "\n");
-    returnPop += ("Fitness: " + to_string(population.at(0).Fitness) + "\n");
-    returnPop += ("**************************************************************\n");
-    return returnPop;
-};
-
-string GenAlg::displaySolution(){
-    string returnPop;
-    returnPop += ("Generation: " + to_string(currentGen) + "\n");
-    returnPop += ("Best Solution: " + population.at(0).Chromosome.to_string() + "\n");
-    returnPop += ("Fitness: " + to_string(population.at(0).Fitness) + "\n");
-    return returnPop;
-};
-
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-int Tools::randRange(int min, int max){
-    // Returns a random integer given a range
-    
-    int range = max - min + 1;
-    return (rand() % range) + min;
-};
-
-char Tools::randChar(){
-    // returns a random charater within the gene pool
-
-    return (genes[randRange(0, genes.length() - 1)]);
-};
-
-string Tools::newGenome(){
-    // Create a random new Genome
-
-    string genome = "";
-    for (int i = 0; i < SOLUTION_SIZE; i++){
-        genome += randChar();
-    }
-    return genome;
-};
-
-string Tools::addressToHex(bitset<ADDRESS_SIZE> address){
-    stringstream ss;
-    bitset<4> bit_to_hex;
-    for (int i = 0; i < (ADDRESS_SIZE / 4); i++){
-        bit_to_hex[0] = address[i];
-        bit_to_hex[1] = address[i + 1];
-        bit_to_hex[2] = address[i + 2];
-        bit_to_hex[3] = address[i + 3];
-        ss << hex <<  bit_to_hex.to_ulong();
-    }
-    return ss.str();
+    return fitness;
 }
 
-void Tools::displayAddressVector(vector<bitset<ADDRESS_SIZE>> addressVector){
-    cout << "<";
-        for (int i = 0; i < addressVector.size(); i++){
-            cout << addressToHex(addressVector.at(i)) << ", ";
-        }
-    cout << ">" << endl;
+// Comparison Operator
+bool Genome::operator<(const Genome& other) const {
+    // Lower fitness is better
+    return Fitness < other.Fitness;
 }
 
-vector<bitset<ADDRESS_SIZE>> Tools::randAddressVector(){
-    // Generating 100 random 32-bit Addresses
-    srand(time(NULL));
-    bitset<ADDRESS_SIZE> bits;
-    double p = 0.5;
-    random_device rd;
-    mt19937 gen(rd());
-    bernoulli_distribution d(p);
-    vector<bitset<ADDRESS_SIZE>> subVector;
-    vector<bitset<ADDRESS_SIZE>> addressVector;
-    for (int i = 0; i < 4; i++){
-        while (subVector.size() != 25){
-            for( int n = 0; n < ADDRESS_SIZE; ++n) {
-                bits[n] = d(gen);
-            }
+================
+File: src/lru_cache.cpp
+================
+// src/lru_cache.cpp
+#include "lru_cache.h"
+#include "utilities.h"
+#include "constants.h"
 
-            // This populates the vector with repeat addresses to simulate a cache line thatt likely calls an address multiple times
-            int repeat = rand() % 10 + 1;
+#include <stdexcept> // For bounds checking errors
+#include <iomanip>   // For formatting output if needed
+#include <filesystem> // Include later for directory creation
 
-            if (repeat > (25 - subVector.size())){
-                repeat = 25 - subVector.size();
-            }
-            
-            for(int i = 0; i < repeat; i ++){
-                subVector.push_back(bits);
-            }
 
-        }
-        // duplicate addresses should be shuffled
-        auto rng = default_random_engine {};
-        shuffle(begin(subVector), end(subVector), rng);
-        //Tools::displayAddressVector(subVector);
-        for (int s = 0; s < 25; s++){
-            addressVector.push_back(subVector.at(s));
-        }
-        subVector.clear();
+// --- LRUSet Method Implementations ---
+LRUSet::LRUSet(size_t ways) : capacity(ways) {
+    if (capacity == 0) {
+        throw std::invalid_argument("Cache set capacity (ways) must be greater than 0.");
     }
-
-    return addressVector;
 }
 
-void Tools::runGA(vector<bitset<ADDRESS_SIZE>> addressVector, string crossoverType, string output){
-    int GAFitness = 0;
-    int GAGen = 0;
-    float numExecutions = NUM_EXECUTIONS;
-    string GAName;
-    vector<int> fitness;
-    vector<int> generations;
-    ofstream results;
-
-    // Delete Previous Directories
-    // create new directory
-    string folderName = crossoverType + "_GA_Solution";
-    char dirName[folderName.length()+1];
-    strcpy(dirName, folderName.c_str());
-    mkdir(dirName);
-    
-    folderName = crossoverType + "_Simulation";
-    strcpy(dirName, folderName.c_str());
-    mkdir(dirName);
-    
-    folderName = "Results";
-    strcpy(dirName, folderName.c_str());
-    mkdir(dirName);
-
-
-    results.open("Results/" + crossoverType + "_Results.txt");
-    for(int i = 0; i < numExecutions; i++){
-        results << "*******************" << endl;
-        cout << "*******************" << endl;
-        cout << crossoverType << endl;
-        
-        GAName = "GA" + to_string(i + 1);
-        GenAlg newAlg(GAName, addressVector, crossoverType);
-
-        cout << GAName << " is running..." << endl;
-        if (output == "YES") newAlg.runWithOF();
-        else newAlg.run();
-        GAFitness = newAlg.getFitness();
-        results << GAName << " # of Evictions: " << to_string(GAFitness) << endl;
-        GAGen = newAlg.getGen()  - CONVERGENCE_ALLOWENCE;
-        results << GAName << " # of Generations to Convergence: " << to_string(GAGen) << endl;
-        cout << GAName << " Complete!" << endl << endl;
-
-        fitness.push_back(GAFitness);
-        generations.push_back(GAGen);
-    }
-
-    // Calculate Min, Max, Average
-    int worstFitness, bestFitness, worstGen, bestGen;
-    sort(fitness.begin(), fitness.end());
-    sort(generations.begin(), generations.end());
-
-    bestFitness = fitness.front();
-    worstFitness = fitness.back();
-    bestGen = generations.front();
-    worstGen = generations.back();
-
-    float totalFitness = accumulate(fitness.begin(), fitness.end(), 0.0);
-    float totalGens = accumulate(generations.begin(), generations.end(), 0.0);
-
-    float avgFitness = totalFitness / numExecutions;
-    float avgGen = totalGens / numExecutions;
-
-    results << "*******************" << endl;
-    results << "Best Fitness: " << bestFitness << endl;
-    results << "Worst Fitness: " << worstFitness << endl;
-    results << "Average Fitness: " << avgFitness << endl;
-    results << "Most # of Generation to Converge: " << worstGen << endl;
-    results << "Least # of Generation to Converge: " << bestGen << endl;
-    results << "Average # of Generations to Converge: " << avgGen << endl;
-    results.close();
-}
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-// Declare the size
-LRUSet::LRUSet()
-{
-    size = 2;
-}
- 
-// Refers key x with in the LRU cache | returns true if resulted in an eviction
-bool LRUSet::refer(bitset<ADDRESS_SIZE> x)
-{
+bool LRUSet::refer(const Address& addr) {
     bool eviction = false;
-    // not present in cache
-    if (cacheMapping.find(x) == cacheMapping.end()) {
-        // cache is full
-        if (set.size() == size) { // EVICTION
-            eviction = true;
-            // delete least recently used element
-            bitset<ADDRESS_SIZE> last = set.back();
- 
-            // Pops the last element
-            set.pop_back();
- 
-            // Erase the last
-            cacheMapping.erase(last);
-        }
-    }
- 
-    // present in cache
-    else
-        set.erase(cacheMapping[x]);
- 
-    // update reference
-    set.push_front(x);
-    cacheMapping[x] = set.begin();
 
+    // Check if address is already in the cache (cache hit)
+    auto it = cacheMap.find(addr);
+    if (it != cacheMap.end()) {
+        // Hit: Move the accessed element to the front (MRU)
+        cacheList.splice(cacheList.begin(), cacheList, it->second);
+    } else {
+        // Miss: Check if the cache set is full
+        if (cacheList.size() >= capacity) {
+            // Eviction needed: Remove the least recently used element (back of the list)
+            Address lru_addr = cacheList.back();
+            cacheMap.erase(lru_addr); // Remove from map
+            cacheList.pop_back();    // Remove from list
+            eviction = true;
+        }
+        // Add the new element to the front (MRU)
+        cacheList.push_front(addr);
+        cacheMap[addr] = cacheList.begin(); // Store iterator in map
+    }
     return eviction;
 }
- 
-// Function to display contents of cache
-string LRUSet::display()
-{
- 
-    // Iterate in the deque and print
-    // all the elements in it
-    stringstream ss;
 
-    if (set.size() == 0){
-        ss << "| -------- | -------- | ";
+std::string LRUSet::display() const {
+    std::stringstream ss;
+    ss << "|";
+    size_t count = 0;
+    for (const auto& addr : cacheList) {
+        ss << " " << std::setw(8) << std::left << Utils::addressToHex(addr) << " |"; // Use utility
+        count++;
     }
-    else if (set.size() == 1){
-        ss << "| " << Tools::addressToHex(set.front()) << " | -------- | ";
+    // Fill remaining slots if set is not full for consistent width
+    for (size_t i = count; i < capacity; ++i) {
+         ss << " " << std::setw(8) << std::left << "--------" << " |";
     }
-    else{
-        ss << "| " << Tools::addressToHex(set.front()) << " | " << Tools::addressToHex(set.back()) << " | ";
-    }
-
-    ss << endl;
-    return ss.str();
-}
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-LRUCache::LRUCache(){
-    
-}
-
-int LRUCache::getEvictionCount(){
-    return evictionCount;
-}
-
-string LRUCache::display(){
-    stringstream ss;
-    for (int i = 0; i < 8; i++) ss << setArray[i].display();
-    ss << "Eviction Count: " << evictionCount << endl;
+    // ss << " (Size: " << cacheList.size() << ")"; // Optional: Show current occupancy
     return ss.str();
 }
 
-void LRUCache::index(int set, bitset<ADDRESS_SIZE> value){
-    if (setArray[set].refer(value)){
+ void LRUSet::clear() {
+     cacheList.clear();
+     cacheMap.clear();
+ }
+
+ size_t LRUSet::getSize() const {
+     return cacheList.size();
+ }
+
+
+// --- LRUCache Method Implementations ---
+
+LRUCache::LRUCache(size_t num_sets, size_t ways_per_set)
+    : numSets(num_sets), ways(ways_per_set), evictionCount(0) {
+    if (numSets == 0) {
+        throw std::invalid_argument("Number of cache sets must be greater than 0.");
+    }
+    // Initialize the vector of sets
+    sets.assign(numSets, LRUSet(ways)); // Create numSets copies of LRUSet with 'ways' capacity
+}
+
+void LRUCache::index(int set_index, const std::bitset<Constants::ADDRESS_SIZE>& value) {
+    // Bounds check for the set index
+    if (set_index < 0 || static_cast<size_t>(set_index) >= numSets) {
+        throw std::out_of_range("Cache set index out of range. Index: " + std::to_string(set_index) + ", Num Sets: " + std::to_string(numSets));
+    }
+
+    // Call refer on the appropriate set and update eviction count if necessary
+    if (sets[set_index].refer(value)) {
         evictionCount++;
     }
 }
 
-void LRUCache::simulateCache(string name, string crossoverType, bitset<SOLUTION_SIZE> chromosome, vector<bitset<ADDRESS_SIZE>> addressVector){
-    ofstream simulation;
-    simulation.open(crossoverType + "_Simulation/Simulation - " + name + ".txt");
-    
-    LRUCache cache;
-    
-    bitset<3> index;
-    for (int i = 0; i < 100; i++){
-        index[0] = chromosome[(i * 3)];
-        index[1] = chromosome[(i * 3) + 1];
-        index[2] = chromosome[(i * 3) + 2];
-        cache.index((int)index.to_ulong(), addressVector.at(i));
-        simulation << "Index: " << (int)index.to_ulong() << " (" << index.to_string() << ")";
-        simulation << " | Address No. " << i + 1 << " | Address: " << Tools::addressToHex(addressVector.at(i)) << endl;
-        simulation << cache.display();
-        simulation << "********************************" << endl;
+int LRUCache::getEvictionCount() const {
+    return evictionCount;
+}
+
+void LRUCache::reset() {
+    evictionCount = 0;
+    for (LRUSet& set : sets) {
+        set.clear();
+    }
+}
+
+std::string LRUCache::display() const {
+    std::stringstream ss;
+    ss << "--- Cache State (Evictions: " << evictionCount << ") ---\n";
+    for (size_t i = 0; i < numSets; ++i) {
+        ss << "Set " << std::setw(2) << i << ": " << sets[i].display() << "\n";
+    }
+    ss << "---------------------------------------\n";
+    return ss.str();
+}
+
+// Static simulation method implementation
+void LRUCache::simulateCache(const std::string& name,
+                             const std::string& crossoverType,
+                             const std::bitset<Constants::SOLUTION_SIZE>& chromosome,
+                             const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addressVector)
+{
+    // --- File Output Setup ---
+    // Replace with <filesystem> path joining later for robustness
+    std::string simulationDir = crossoverType + "_Simulation";
+    std::string filePath = simulationDir + "/Simulation - " + name + ".txt";
+
+    // Create directory - Replace with <filesystem> later
+    // #include <sys/stat.h> // Needed for mkdir - temporary
+    // mkdir(simulationDir.c_str(), 0777); // Basic directory creation
+
+    std::ofstream simulation_out(filePath);
+    if (!simulation_out) {
+         std::cerr << "ERROR: Could not open simulation output file: " << filePath << std::endl;
+         return; // Or throw exception
     }
 
-    simulation.close();
+    simulation_out << "******* Cache Simulation - GA: " << name << " (" << crossoverType << ") *******\n";
+    simulation_out << "Chromosome: " << chromosome.to_string() << "\n";
+    simulation_out << "Address Trace Size: " << addressVector.size() << "\n";
+    simulation_out << "**********************************************************\n\n";
+
+    // --- Simulation ---
+    LRUCache cache(Constants::DEFAULT_CACHE_SETS, Constants::DEFAULT_CACHE_WAYS); // Use default geometry for simulation
+
+    if (addressVector.size() != 100 || Constants::SOLUTION_SIZE != 300) {
+         simulation_out << "ERROR: Incompatible address vector size (" << addressVector.size()
+                        << ") or chromosome size (" << Constants::SOLUTION_SIZE
+                        << ") for standard simulation (expects 100 addresses, 300 bits).\n";
+         return;
+    }
+
+    std::bitset<3> indexBits; // Assuming 3 bits = log2(DEFAULT_CACHE_SETS) = log2(8)
+    for (size_t i = 0; i < addressVector.size(); ++i) {
+        // Extract index bits from chromosome
+        int base_idx = static_cast<int>(i * 3);
+         if (base_idx + 2 >= Constants::SOLUTION_SIZE) {
+             simulation_out << "ERROR: Chromosome index out of bounds at address " << i << "\n";
+             break; // Stop simulation on error
+         }
+        indexBits[0] = chromosome[base_idx];
+        indexBits[1] = chromosome[base_idx + 1];
+        indexBits[2] = chromosome[base_idx + 2];
+        int setIndex = static_cast<int>(indexBits.to_ulong());
+
+         simulation_out << "Step " << std::setw(3) << (i + 1) << ": Address=" << Utils::addressToHex(addressVector.at(i))
+                        << ", RawIndexBits=" << indexBits.to_string() << ", SetIndex=" << setIndex << "\n";
+
+        // Access the cache
+        cache.index(setIndex, addressVector.at(i));
+
+        // Log cache state
+        simulation_out << cache.display(); // Display state after access
+        simulation_out << "---------------------------------------\n";
+    }
+
+    simulation_out << "\n******* Simulation Complete *******\n";
+    simulation_out << "Final Eviction Count: " << cache.getEvictionCount() << "\n";
+    simulation_out << "***********************************\n";
+
+    simulation_out.close(); // Good practice to close the file stream
 }
-/***********************************************************************************************************/
 
-/***********************************************************************************************************/
+================
+File: src/main.cpp
+================
+// src/main.cpp
+#include <iostream>
+#include <vector>
+#include <string>
+#include <chrono>    // For timing
+#include <numeric>   // For std::accumulate
+#include <algorithm> // For std::minmax_element
+#include <fstream>   // For file output
+#include <iomanip>   // For formatting output
+#include <filesystem> // For path handling
 
-int main() {
-    // Generating 100 random 32-bit Addresses
-    vector<bitset<ADDRESS_SIZE>> addressVector = Tools::randAddressVector();
-    /*
-    UX - Uniform Crossover
-    2PX - Two Point Crossover
-    SX - Segmented Crossover
-    */
+// Include project headers
+#include "constants.h"
+#include "utilities.h"
+#include "genome.h"
+#include "genetic_algorithm.h"
+#include "lru_cache.h"
 
-    // AV, crossoverType, Output - YES or NO?
-    Tools::runGA(addressVector, "UX", "YES");
-    Tools::runGA(addressVector, "2PX", "YES");
-    Tools::runGA(addressVector, "SX", "YES");
-    Tools::runGA(addressVector, "BAX", "YES");
+// Function to run the experiment for a given crossover type
+void run_experiment(const std::string& crossover_type,
+                   const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& address_vector)
+{
+    std::cout << "\n===== Running Experiment for Crossover Type: " << crossover_type << " =====\n";
 
+    // --- Setup Output ---
+    std::string results_dir = "Results";
+    std::string ga_solution_dir = crossover_type + "_GA_Solution";
+    std::string simulation_dir = crossover_type + "_Simulation";
+
+    if (!Utils::createDirectory(results_dir) ||
+        !Utils::createDirectory(ga_solution_dir) ||
+        !Utils::createDirectory(simulation_dir))
+    {
+        std::cerr << "ERROR: Failed to create necessary output directories. Aborting experiment for " << crossover_type << "." << std::endl;
+        return;
+    }
+
+    std::string results_file_path = results_dir + "/" + crossover_type + "_Results.txt";
+    std::ofstream results_out(results_file_path);
+    if (!results_out) {
+        std::cerr << "ERROR: Cannot open results file: " << results_file_path << std::endl;
+        return;
+    }
+
+    results_out << "********** Experiment Results for Crossover: " << crossover_type << " **********\n";
+    results_out << "Timestamp: " << std::chrono::system_clock::now() << "\n"; // C++20 feature for timestamp output
+    results_out << "Number of Executions: " << Constants::NUM_EXECUTIONS << "\n";
+    results_out << "Population Size: " << Constants::POP_SIZE << "\n";
+    results_out << "Max Generations: " << Constants::MAX_GEN << "\n";
+    results_out << "Mutation Rate: " << Constants::MUTATION_RATE << "\n";
+    results_out << "Elitism Rate: " << Constants::ELITISM_RATE << "\n";
+    results_out << "Convergence Allowance: " << Constants::CONVERGENCE_ALLOWENCE << "\n";
+    results_out << "Address Trace Size: " << address_vector.size() << "\n";
+    results_out << "******************************************************************\n\n";
+
+
+    // --- Experiment Loop ---
+    std::vector<int> fitness_results;
+    std::vector<int> generation_results;
+    std::vector<double> time_results_ms;
+
+    fitness_results.reserve(Constants::NUM_EXECUTIONS);
+    generation_results.reserve(Constants::NUM_EXECUTIONS);
+    time_results_ms.reserve(Constants::NUM_EXECUTIONS);
+
+    for (int i = 0; i < Constants::NUM_EXECUTIONS; ++i) {
+        std::string run_name = "GA" + std::to_string(i + 1);
+        std::cout << "--- Starting Run " << (i + 1) << "/" << Constants::NUM_EXECUTIONS << " (" << run_name << ") ---" << std::endl;
+        results_out << "--- Run: " << run_name << " ---\n";
+
+        try {
+            // Instantiate GA
+            GeneticAlgorithm ga(run_name, address_vector, crossover_type);
+
+            // Time the execution
+            auto start_time = std::chrono::high_resolution_clock::now();
+            ga.run(); // Execute the algorithm
+            auto end_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> duration_ms = end_time - start_time;
+
+            // Get results from GA
+            const Genome& best_genome = ga.getBestGenome();
+            int final_fitness = best_genome.Fitness; // Or ga.getBestFitness()
+            int final_generation = ga.getCurrentGeneration(); // This includes convergence allowance if converged early
+
+            // Store results
+            fitness_results.push_back(final_fitness);
+            generation_results.push_back(final_generation);
+            time_results_ms.push_back(duration_ms.count());
+
+            // Output individual run results
+            std::cout << run_name << " Complete! Fitness: " << final_fitness
+                      << ", Generations: " << final_generation
+                      << ", Time: " << duration_ms.count() << " ms\n";
+            results_out << run_name << " Fitness (Evictions): " << final_fitness << "\n";
+            results_out << run_name << " Generations Run: " << final_generation << "\n";
+            results_out << run_name << " Execution Time (ms): " << duration_ms.count() << "\n";
+
+             // --- Write GA Solution File ---
+             std::string ga_solution_file_path = ga_solution_dir + "/GA_Solution - " + run_name + ".txt";
+             std::ofstream ga_solution_out(ga_solution_file_path);
+             if (ga_solution_out) {
+                 ga_solution_out << "******* Solution - " << run_name << " (" << crossover_type << ") *******\n";
+                 ga_solution_out << ga.displaySolutionInfo(); // Use the GA's method
+                 ga_solution_out << "******************************************\n";
+                 ga_solution_out.close();
+             } else {
+                 std::cerr << "ERROR: Could not open GA solution file: " << ga_solution_file_path << std::endl;
+             }
+
+            // --- Run and Write Cache Simulation ---
+             LRUCache::simulateCache(run_name, crossover_type, best_genome.Chromosome, address_vector);
+
+        } catch (const std::exception& e) {
+             std::cerr << "ERROR during GA run " << run_name << ": " << e.what() << std::endl;
+             results_out << run_name << " encountered an error: " << e.what() << "\n";
+             // Decide if you want to skip this run or abort entirely
+        }
+         results_out << "---------------------\n";
+
+    } // End of experiment loop
+
+    // --- Calculate Summary Statistics ---
+    if (!fitness_results.empty()) {
+        double total_fitness = std::accumulate(fitness_results.begin(), fitness_results.end(), 0.0);
+        double total_generations = std::accumulate(generation_results.begin(), generation_results.end(), 0.0);
+        double total_time = std::accumulate(time_results_ms.begin(), time_results_ms.end(), 0.0);
+
+        auto [min_fit_it, max_fit_it] = std::minmax_element(fitness_results.begin(), fitness_results.end());
+        auto [min_gen_it, max_gen_it] = std::minmax_element(generation_results.begin(), generation_results.end());
+        auto [min_time_it, max_time_it] = std::minmax_element(time_results_ms.begin(), time_results_ms.end());
+
+        double avg_fitness = total_fitness / fitness_results.size();
+        double avg_generations = total_generations / generation_results.size();
+        double avg_time = total_time / time_results_ms.size();
+
+        // --- Output Summary ---
+        std::cout << "\n===== Experiment Summary for " << crossover_type << " =====\n";
+        std::cout << std::fixed << std::setprecision(2); // Format output
+        std::cout << "Fitness (Evictions): Min=" << *min_fit_it << ", Max=" << *max_fit_it << ", Avg=" << avg_fitness << "\n";
+        std::cout << "Generations Run:     Min=" << *min_gen_it << ", Max=" << *max_gen_it << ", Avg=" << avg_generations << "\n";
+        std::cout << "Execution Time (ms): Min=" << *min_time_it << ", Max=" << *max_time_it << ", Avg=" << avg_time << "\n";
+        std::cout << "======================================\n";
+
+        results_out << "\n********** Summary Statistics **********\n";
+        results_out << std::fixed << std::setprecision(2);
+        results_out << "Fitness (Evictions) - Min: " << *min_fit_it << "\n";
+        results_out << "Fitness (Evictions) - Max: " << *max_fit_it << "\n";
+        results_out << "Fitness (Evictions) - Avg: " << avg_fitness << "\n";
+        results_out << "Generations Run     - Min: " << *min_gen_it << "\n";
+        results_out << "Generations Run     - Max: " << *max_gen_it << "\n";
+        results_out << "Generations Run     - Avg: " << avg_generations << "\n";
+        results_out << "Execution Time (ms) - Min: " << *min_time_it << "\n";
+        results_out << "Execution Time (ms) - Max: " << *max_time_it << "\n";
+        results_out << "Execution Time (ms) - Avg: " << avg_time << "\n";
+        results_out << "**************************************\n";
+    } else {
+         std::cout << "No successful runs completed for " << crossover_type << ".\n";
+         results_out << "No successful runs completed.\n";
+    }
+    results_out.close();
+}
+
+
+int main(int argc, char* argv[]) {
+    // TODO: Add command-line argument parsing (e.g., using cxxopts or similar)
+    // to allow overriding crossover types, num_executions, output dirs etc.
+    std::vector<std::string> crossover_types = {"UX", "2PX", "SX", "BAX"}; // Types to test
+
+    // Seed the random number generator ONCE
+    Utils::initialize_random_seed();
+
+    // Generate the common address vector for all experiments in this run
+    std::cout << "Generating address vector...\n";
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> address_vector = Utils::randAddressVector();
+    // Utils::displayAddressVector(address_vector); // Optional: display for debugging
+
+    // Run experiments for each specified crossover type
+    for (const std::string& co_type : crossover_types) {
+        run_experiment(co_type, address_vector);
+    }
+
+    std::cout << "\nAll experiments complete." << std::endl;
     return 0;
 }
 
 ================
-File: genetic_algorithm.h
+File: src/utilities.cpp
 ================
-#ifndef GEN_ALG_H
-#define GEN_ALG_H
+// src/utilities.cpp
+#include "utilities.h"
+#include "constants.h"
 
-// Includes
-#include <bits/stdc++.h>
-#include <stdlib.h>
+#include <random>       // For modern C++ random numbers
+#include <stdexcept>    // For exceptions
+#include <algorithm>    // For std::shuffle
+#include <chrono>       // For seeding random
+#include <numeric>      // For std::accumulate (if needed elsewhere)
+#include <filesystem>   // For directory creation
+#include <iostream>     // For displayAddressVector, error messages
+#include <iomanip>      // For std::setw in hex conversion
+
+namespace Utils {
+
+    // --- Random Number Generation Engine ---
+    // Define a static generator instance within the cpp file
+    static std::mt19937 rng_engine;
+    static bool rng_seeded = false;
+
+    void initialize_random_seed() {
+        if (!rng_seeded) {
+            // Seed with a combination of random_device and time for better randomness
+            std::random_device rd;
+            auto seed_val = static_cast<unsigned long>(rd()) ^
+                            static_cast<unsigned long>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+            rng_engine.seed(seed_val);
+            rng_seeded = true;
+            std::cout << "INFO: Random number generator seeded." << std::endl;
+        }
+    }
+
+    int randRange(int min, int max) {
+        if (!rng_seeded) {
+             // Or throw an exception, or seed here? Best practice is to seed explicitly once at program start.
+             std::cerr << "WARNING: Random generator used before explicit seeding!\n";
+             initialize_random_seed();
+        }
+        if (min > max) {
+            throw std::invalid_argument("Min value cannot be greater than max value in randRange.");
+        }
+        // Use uniform_int_distribution for unbiased integer generation
+        std::uniform_int_distribution<int> distribution(min, max);
+        return distribution(rng_engine);
+    }
+
+    char randChar() {
+         if (Constants::GENE_POOL.empty()) {
+             throw std::runtime_error("Gene pool is empty.");
+         }
+         int index = randRange(0, static_cast<int>(Constants::GENE_POOL.length()) - 1);
+         return Constants::GENE_POOL[index];
+    }
+
+
+    // --- Genome/Problem Specific Utilities ---
+
+    std::string newGenome(std::size_t length) {
+         std::string genome = "";
+         genome.reserve(length);
+         for (std::size_t i = 0; i < length; ++i) {
+             genome += randChar();
+         }
+         return genome;
+    }
+
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> randAddressVector(std::size_t count, int locality_level) {
+        // Simplified approach to simulate locality:
+        // Generate a smaller pool of unique addresses, then sample from it with replacement,
+        // occasionally repeating the last address used.
+
+        if (count == 0) return {};
+
+        std::vector<std::bitset<Constants::ADDRESS_SIZE>> addressVector;
+        addressVector.reserve(count);
+
+        // Use Bernoulli distribution for random bits
+        std::bernoulli_distribution bit_dist(0.5); // 50% chance for 0 or 1
+
+        // Create a smaller pool of base addresses
+        std::size_t pool_size = std::max(static_cast<size_t>(1), count / std::max(1, locality_level));
+        std::vector<std::bitset<Constants::ADDRESS_SIZE>> address_pool(pool_size);
+        for(std::size_t i = 0; i < pool_size; ++i) {
+             for (std::size_t n = 0; n < Constants::ADDRESS_SIZE; ++n) {
+                 address_pool[i][n] = bit_dist(rng_engine);
+             }
+        }
+
+        // Generate the final vector by sampling from the pool with repeats
+        std::uniform_int_distribution<std::size_t> pool_sampler(0, pool_size - 1);
+        std::bitset<Constants::ADDRESS_SIZE> last_addr; // Keep track of the last address
+
+        for (std::size_t i = 0; i < count; ++i) {
+             // Simple locality: Occasionally repeat the last address
+             bool repeat_last = (i > 0) && (randRange(1, 10) <= locality_level); // Adjust probability as needed
+
+             if (repeat_last) {
+                  addressVector.push_back(last_addr);
+             } else {
+                  std::size_t pool_idx = pool_sampler(rng_engine);
+                  last_addr = address_pool[pool_idx];
+                  addressVector.push_back(last_addr);
+             }
+        }
+
+         // Optionally shuffle the final vector slightly to mix repeats
+         // std::shuffle(addressVector.begin(), addressVector.end(), rng_engine);
+
+        return addressVector;
+    }
+
+
+    // --- Formatting and Display ---
+
+    std::string addressToHex(std::bitset<Constants::ADDRESS_SIZE> address) {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0');
+
+        // Process in chunks (e.g., 32 bits -> 8 hex chars)
+        constexpr size_t bits_per_hex = 4;
+        constexpr size_t hex_chars = (Constants::ADDRESS_SIZE + bits_per_hex - 1) / bits_per_hex; // Ceiling division
+
+        for (int i = static_cast<int>(hex_chars) - 1; i >= 0; --i) {
+            std::bitset<bits_per_hex> chunk;
+            for (size_t j = 0; j < bits_per_hex; ++j) {
+                size_t bit_index = i * bits_per_hex + j;
+                if (bit_index < Constants::ADDRESS_SIZE) {
+                    chunk[j] = address[bit_index];
+                } else {
+                     chunk[j] = 0; // Pad with 0 if ADDRESS_SIZE is not multiple of 4
+                }
+            }
+            ss << chunk.to_ulong();
+        }
+        return ss.str();
+    }
+
+    void displayAddressVector(const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addressVector) {
+         std::cout << "Address Vector (Size: " << addressVector.size() << "): <";
+         bool first = true;
+         for (const auto& addr : addressVector) {
+             if (!first) {
+                 std::cout << ", ";
+             }
+             std::cout << addressToHex(addr);
+             first = false;
+         }
+         std::cout << ">" << std::endl;
+    }
+
+    // --- Filesystem Utilities ---
+    bool createDirectory(const std::string& path_str) {
+         std::filesystem::path dir_path(path_str);
+         try {
+             if (!std::filesystem::exists(dir_path)) {
+                 if (std::filesystem::create_directories(dir_path)) {
+                     std::cout << "INFO: Created directory: " << path_str << std::endl;
+                     return true;
+                 } else {
+                     std::cerr << "ERROR: Failed to create directory: " << path_str << std::endl;
+                     return false;
+                 }
+             } else if (!std::filesystem::is_directory(dir_path)) {
+                  std::cerr << "ERROR: Path exists but is not a directory: " << path_str << std::endl;
+                  return false;
+             }
+             return true; // Directory already exists
+         } catch (const std::filesystem::filesystem_error& e) {
+             std::cerr << "ERROR: Filesystem error creating directory " << path_str << ": " << e.what() << std::endl;
+             return false;
+         }
+    }
+
+
+}
+
+================
+File: CMakeLists.txt
+================
+# Minimum CMake version required (C++17 features like filesystem need ~3.14+)
+cmake_minimum_required(VERSION 3.14)
+
+# Define the project name and language
+project(GeneticAlgorithmCacheOptimization LANGUAGES CXX)
+
+# Set the C++ standard required (C++17 for <filesystem>)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+# Optional: Disable compiler-specific extensions for better portability
+# set(CMAKE_CXX_EXTENSIONS OFF)
+
+# --- Configuration ---
+# Optional: Add definition for constants file (useful if constants need guards)
+# add_definitions(-DHAVE_CONSTANTS_H)
+
+# --- Include Directories ---
+# Add the 'include' directory so CMake finds your header files
+include_directories(include)
+
+# --- Find Source Files ---
+# Automatically find all .cpp files in the 'src' directory
+file(GLOB SOURCE_FILES "src/*.cpp")
+
+# --- Define Executable ---
+# Create an executable named after the project, using the found source files
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+
+# --- Link Libraries ---
+# <filesystem> support might require explicitly linking stdc++fs on some older systems/compilers (e.g., GCC < 9).
+# Modern compilers usually handle this automatically when CMAKE_CXX_STANDARD 17 is set.
+# Try building without this first. If you get linker errors related to std::filesystem, uncomment the relevant lines below.
+#
+# Example for GCC < 9:
+# if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+#   target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+# endif()
+#
+# Example for linking on all systems (if needed):
+# find_library(STDCPPFS stdc++fs)
+# if(STDCPPFS)
+#   target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+#   message(STATUS "Linking against stdc++fs")
+# else()
+#   message(WARNING "stdc++fs library not found, filesystem support might be missing.")
+# endif()
+
+# --- Optional: Improve Build Experience ---
+
+# Add compiler warnings (recommended for catching potential issues)
+if(MSVC)
+  # Microsoft Visual C++ specific warnings
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+  # GCC/Clang specific warnings
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# Suggest build types like Debug or Release
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel" FORCE)
+endif()
+
+# --- Output ---
+message(STATUS "Project Name: ${PROJECT_NAME}")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Source Files: ${SOURCE_FILES}")
+
+# --- Installation ---
+# Optional: Define installation rules if you want to install the executable
+# install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+================
+File: include/constants.h
+================
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 #include <string>
-#include <algorithm>
+#include <cstddef>
+
+namespace Constants {
+
+    // === Genetic Algorithm Parameters ===
+
+    // Population settings
+    constexpr std::size_t POP_SIZE = 100;           // Number of individuals in the population
+    constexpr double ELITISM_RATE = 0.05;           // Top 5% of population carried over (0.0 to 1.0)
+
+    // Mutation and Crossover settings
+    constexpr double MUTATION_RATE = 0.05;          // Chance (0.0 to 1.0) for a gene to mutate during crossover/mutation step
+    constexpr double SEG_X_SWITCH_RATE = 0.40;      // Chance (0.0 to 1.0) to switch parent dominance in Segmented Crossover (SX)
+
+    // Termination conditions
+    constexpr int MAX_GEN = 400;                    // Maximum number of generations to run
+    constexpr int CONVERGENCE_ALLOWENCE = 25;       // # of generations with no fitness improvement to declare convergence
+
+    // Genome/Problem definition
+    constexpr std::size_t SOLUTION_SIZE = 300;      // Chromosome length in bits (e.g., 100 addresses * 3 bits/index)
+    constexpr std::size_t ADDRESS_SIZE = 32;        // Address length in bits
+    const std::string GENE_POOL = "01";             // Allowed characters/bits for chromosome generation
+
+
+    // === LRU Cache Parameters ===
+
+    constexpr std::size_t DEFAULT_CACHE_SETS = 8;   // Default number of sets in the simulated cache (log2(8)=3 index bits)
+    constexpr std::size_t DEFAULT_CACHE_WAYS = 2;   // Default number of ways (associativity) per set
+
+
+    // === Experiment Parameters ===
+
+    constexpr int NUM_EXECUTIONS = 20;              // Default number of times to run the GA experiment for averaging results
+
+
+    // === Other Configuration ===
+
+    // Selection Pressure (used in original random selection from top half)
+    // We can make this explicit if we refactor selection later
+    constexpr double SELECTION_POOL_RATIO = 0.50;   // Select parents from the top 50% of the sorted population
+
+}
+
+#endif // CONSTANTS_H
+
+================
+File: include/genetic_algorithm.h
+================
+#ifndef GENETIC_ALGORITHM_H
+#define GENETIC_ALGORITHM_H
+
 #include <vector>
+#include <string>
 #include <fstream>
-#include <iostream>
-#include <time.h>
 #include <bitset>
-#include <random>
-// C program to create a folder
-#include <conio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <cstring>
-#include <filesystem>
-#include <typeinfo>
+#include <memory>
+#include "constants.h"
 
-using namespace std;
+// Forward declare Genome to avoid including its header here
+// if only pointers or references are needed. Full include needed for vector<Genome>.
+#include "genome.h" // Including because std::vector<Genome> population; requires the full type
 
-// Initial Definitions
-#define POP_SIZE 100
-#define ELITISM_PERCENTAGE 5 // What top percentage of the population should be carried from generation to generation
-#define MUTATION_CHANCE 5 // As a percentage chance
-#define MAX_GEN 400 // The max allowed generations
-#define SOLUTION_SIZE 300
-#define ADDRESS_SIZE 32
-#define CONVERGENCE_ALLOWENCE 25 // The # of generations with no fitness change to declare as converged
-#define NUM_EXECUTIONS 20
-#define SEG_X_CHANCE 40 // chance to make a new crossover point for segmented crossover
-const string genes = "10";
-/***********************************************************************************************************/
-class Genome {
-
-    public:
-        bitset<SOLUTION_SIZE> Chromosome;
-        vector<bitset<ADDRESS_SIZE>> addressVector;
-        int Fitness;
-        int cal_fitness();
-        Genome(bitset<SOLUTION_SIZE> chromosome, vector<bitset<ADDRESS_SIZE>> addressVector): Chromosome(chromosome), addressVector(addressVector), Fitness(cal_fitness()){};
-        pair<Genome, Genome> UX(Genome mate);
-        pair<Genome, Genome> TWOPX(Genome mate);
-        pair<Genome, Genome> SX(Genome mate);
-        pair<Genome, Genome> BAX(Genome mate);
-        bool operator<(const Genome& GenomeB);
-};
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-class GenAlg {
-
-    public:
-        vector<bitset<ADDRESS_SIZE>> addressVector;
-        string crossoverType;
-        int currentGen;
-        int solFitness;
-        string Name;
-        vector<Genome> population;
-        bool solutionFound;
-        ofstream output;
-        GenAlg(string name, vector<bitset<ADDRESS_SIZE>> addressVector, string crossoverType): Name(name), addressVector(addressVector), crossoverType(crossoverType){};
-        void run();
-        void runWithOF();
-        string displayPop();
-        string displaySolution();
-        int getFitness(){return solFitness;};
-        int getGen(){return currentGen;};
-};
-/***********************************************************************************************************/
-
-/***********************************************************************************************************/
-class Tools {
-
-    public:
-        static int randRange(int min, int max);
-        static char randChar();
-        static string newGenome();
-        static string addressToHex(bitset<ADDRESS_SIZE> address);
-        static void displayAddressVector(vector<bitset<ADDRESS_SIZE>> addressVector);
-        static vector<bitset<ADDRESS_SIZE>> randAddressVector();
-        static void runGA(vector<bitset<ADDRESS_SIZE>> addressVector, string crossoverType, string output);
-};
-
-/*******************************************************************************************************************************/
-class LRUSet {
-    // store keys of cache
-    list<bitset<ADDRESS_SIZE>> set;
- 
-    // store references of key in cache
-    unordered_map<bitset<ADDRESS_SIZE>, list<bitset<ADDRESS_SIZE>>::iterator> cacheMapping;
-    int size; // maximum capacity of cache
- 
+class GeneticAlgorithm {
 public:
-    LRUSet();
-    bool refer(bitset<ADDRESS_SIZE>);
-    string display();
+    // Constructor: Takes necessary parameters
+    GeneticAlgorithm(std::string ga_name,
+                     const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec,
+                     std::string crossover_type);
+
+    // --- Core GA Methods ---
+    void run(); // Runs the genetic algorithm loop
+    // void initializePopulation();
+    // void evaluatePopulation();
+    // std::vector<Genome> selectParents();
+    // void createNextGeneration();
+
+    // --- Getters for Results ---
+    const Genome& getBestGenome() const; // Return const reference to best genome
+    int getCurrentGeneration() const;
+    int getBestFitness() const;
+    bool isSolutionFound() const;
+
+    // --- Optional: Display/Logging Methods (Consider moving logic outside) ---
+    std::string displayPopulationInfo() const; // Renamed from displayPop
+    std::string displaySolutionInfo() const; // Renamed from displaySolution
+
+private:
+    // --- Member Variables ---
+    std::string name;
+    std::string selectedCrossoverType;
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> addressVector; // Keep a const ref? Depends if GA modifies it (it shouldn't)
+    std::vector<Genome> population;
+    int currentGeneration;
+    int bestFitness;
+    bool solutionFound;
+    bool converged;
+
+    // --- Helper Methods (Private) ---
+    void initializePopulation();
+    void sortPopulation();
+    void performElitism(std::vector<Genome>& newPopulation);
+    void performSelectionAndCrossover(std::vector<Genome>& newPopulation);
+    void checkTerminationConditions();
 };
-/***********************************************************************************************************/
 
-/*******************************************************************************************************************************/
-class LRUCache {
-    
-    //int size; // maximum capacity of cache
-    LRUSet setArray[8];
-    int evictionCount = 0;
- 
-public:
-    int getEvictionCount();
-    LRUCache();
-    string display();
-    void index(int, bitset<ADDRESS_SIZE>);
-    static void simulateCache(string, string, bitset<SOLUTION_SIZE>, vector<bitset<ADDRESS_SIZE>>);
-};
-/*******************************************************************************************************************************/
+#endif // GENETIC_ALGORITHM_H
+
+================
+File: src/genetic_algorithm.cpp
+================
+// src/genetic_algorithm.cpp
+#include "genetic_algorithm.h"
+#include "genome.h"
+#include "utilities.h"
+#include "constants.h"
+
+#include <algorithm> // For std::sort
+#include <iostream>  // For std::cout (replace printf later)
+#include <stdexcept>
+#include <limits>
+
+// C includes - Mark for removal later
+#include <sys/stat.h> // For mkdir - replace with <filesystem>
+#include <cstring>    // For strcpy - replace with std::string ops
+
+// Constructor
+GeneticAlgorithm::GeneticAlgorithm(std::string ga_name,
+                                 const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec,
+                                 std::string crossover_type)
+    : name(std::move(ga_name)), // Use std::move for strings
+      selectedCrossoverType(std::move(crossover_type)),
+      addressVector(addrVec), // Copy address vector
+      currentGeneration(0),
+      bestFitness(std::numeric_limits<int>::max()), // Initialize with worst possible fitness
+      solutionFound(false),
+      converged(false)
+{
+    // Validate crossover type
+    if (selectedCrossoverType != "UX" && selectedCrossoverType != "2PX" &&
+        selectedCrossoverType != "SX" && selectedCrossoverType != "BAX") {
+        throw std::runtime_error("ERROR: Invalid crossover type selected: " + selectedCrossoverType);
+    }
+    initializePopulation();
+}
+
+// --- Initialization ---
+void GeneticAlgorithm::initializePopulation() {
+    population.reserve(Constants::POP_SIZE); // Reserve space for efficiency
+    for (int i = 0; i < Constants::POP_SIZE; ++i) {
+        // Create random bitset for chromosome
+        std::string genomeString = Utils::newGenome(Constants::SOLUTION_SIZE); // Pass size
+        std::bitset<Constants::SOLUTION_SIZE> genomeBits(genomeString);
+        // Add new Genome to population (constructor calculates initial fitness)
+        population.emplace_back(genomeBits, addressVector);
+    }
+    // Initial sort and fitness update
+    sortPopulation();
+    if (!population.empty()) {
+         bestFitness = population.front().Fitness;
+    }
+}
+
+// --- Core GA Loop ---
+void GeneticAlgorithm::run() {
+    int convergenceCounter = 0;
+    int previousBestFitness = bestFitness;
+
+    while (!solutionFound && !converged && currentGeneration < Constants::MAX_GEN) {
+
+        sortPopulation();
+        checkTerminationConditions(); // Check convergence and target fitness
+
+        if (solutionFound || converged) {
+            break; // Exit loop if termination conditions met
+        }
+
+        // --- Create Next Generation ---
+        std::vector<Genome> newPopulation;
+        newPopulation.reserve(Constants::POP_SIZE);
+
+        performElitism(newPopulation);
+        performSelectionAndCrossover(newPopulation);
+
+        // Replace old population
+        population = std::move(newPopulation); // Efficiently move data
+
+         // --- Convergence Check ---
+         if (bestFitness == previousBestFitness) {
+             convergenceCounter++;
+         } else {
+             convergenceCounter = 0; // Reset if fitness improved
+             previousBestFitness = bestFitness;
+         }
+
+         if (convergenceCounter >= Constants::CONVERGENCE_ALLOWENCE) {
+             converged = true;
+             std::cout << "INFO: GA converged after " << Constants::CONVERGENCE_ALLOWENCE
+                       << " generations without fitness improvement." << std::endl;
+         }
+
+        // Advance Generation
+        currentGeneration++;
+
+    }
+
+    // Final sort to ensure the best is at the front
+    sortPopulation();
+    if (!population.empty()) {
+         bestFitness = population.front().Fitness; // Update final best fitness
+    }
+
+    std::cout << "INFO: GA run finished. Generation: " << currentGeneration
+              << ", Best Fitness: " << bestFitness
+              << ", Solution Found: " << (solutionFound ? "Yes" : "No")
+              << ", Converged: " << (converged ? "Yes" : "No") << std::endl;
+}
+
+// --- Helper Methods ---
+void GeneticAlgorithm::sortPopulation() {
+    std::sort(population.begin(), population.end()); // Uses Genome::operator<
+    if (!population.empty()) {
+        bestFitness = population.front().Fitness; // Update best fitness after sort
+    }
+}
+
+void GeneticAlgorithm::checkTerminationConditions() {
+     if (population.empty()) {
+         solutionFound = false; // Or handle as an error state
+         converged = true; // Cannot proceed
+         return;
+     }
+    // Check if target fitness (0) has been reached
+    if (bestFitness == 0) {
+        solutionFound = true;
+        std::cout << "INFO: Target fitness (0) reached!" << std::endl;
+    }
+    // Max generation check is handled by the loop condition
+}
+
+void GeneticAlgorithm::performElitism(std::vector<Genome>& newPopulation) {
+    int elitismCount = static_cast<int>((Constants::ELITISM_RATE / 100.0) * Constants::POP_SIZE);
+    elitismCount = std::min(elitismCount, static_cast<int>(population.size())); // Ensure not exceeding pop size
+
+    for (int i = 0; i < elitismCount; ++i) {
+        newPopulation.push_back(population[i]); // Copy elite individuals
+    }
+}
+
+void GeneticAlgorithm::performSelectionAndCrossover(std::vector<Genome>& newPopulation) {
+    int elitismCount = static_cast<int>((Constants::ELITISM_RATE / 100.0) * Constants::POP_SIZE);
+    int remainingPopulation = Constants::POP_SIZE - elitismCount;
+    int parentPoolSize = Constants::POP_SIZE / 2; // Original logic selected from top 50%
+
+    // Ensure parentPoolSize is valid
+    parentPoolSize = std::max(1, std::min(parentPoolSize, static_cast<int>(population.size())));
 
 
-#endif // GEN_ALG_H
+    for (int i = 0; i < remainingPopulation; i += 2) { // Each iteration generates two offspring
+        // Selection: Randomly choose two parents from the better half (top parentPoolSize)
+        // Replace rand() later
+        int parentA_idx = Utils::randRange(0, parentPoolSize - 1);
+        int parentB_idx = Utils::randRange(0, parentPoolSize - 1);
+        // Ensure parents are different
+        while (parentA_idx == parentB_idx && parentPoolSize > 1) {
+            parentB_idx = Utils::randRange(0, parentPoolSize - 1);
+        }
+
+        const Genome& parentA = population[parentA_idx];
+        const Genome& parentB = population[parentB_idx];
+
+        // Crossover
+        std::pair<Genome, Genome> offspring = [&]() {
+            if (selectedCrossoverType == "UX") return parentA.UX(parentB);
+            if (selectedCrossoverType == "2PX") return parentA.TWOPX(parentB);
+            if (selectedCrossoverType == "SX") return parentA.SX(parentB);
+            if (selectedCrossoverType == "BAX") return parentA.BAX(parentB);
+            // Should not happen due to constructor validation, but handle defensively:
+            throw std::runtime_error("Internal error: Invalid crossover type in crossover execution: " + selectedCrossoverType);
+        }(); // Immediately invoke the lambda to get the pair
+
+        // Add offspring to new population
+        newPopulation.push_back(std::move(offspring.first)); // Move offspring
+        if (newPopulation.size() < Constants::POP_SIZE) { // Add second offspring if space allows
+            newPopulation.push_back(std::move(offspring.second));
+        }
+         // Ensure we don't exceed POP_SIZE, although the loop condition should prevent this if POP_SIZE - elitismCount is even.
+         // If POP_SIZE - elitismCount is odd, the last iteration adds only one offspring.
+         if (newPopulation.size() >= Constants::POP_SIZE) break;
+    }
+     // Handle potential size mismatch if POP_SIZE - elitismCount was odd
+     while (newPopulation.size() < Constants::POP_SIZE && population.size() > 0) {
+          // Fill remaining spots - e.g., repeat last crossover or select another parent
+          int parentA_idx = Utils::randRange(0, parentPoolSize - 1);
+          newPopulation.push_back(population[parentA_idx]); // Simple fill with a good parent
+     }
+}
+
+
+// --- Getters ---
+const Genome& GeneticAlgorithm::getBestGenome() const {
+    if (population.empty()) {
+        throw std::runtime_error("ERROR: Cannot get best genome from empty population.");
+    }
+    // Assumes population is sorted or was sorted finally in run()
+    return population.front();
+}
+
+int GeneticAlgorithm::getCurrentGeneration() const {
+    return currentGeneration;
+}
+
+ int GeneticAlgorithm::getBestFitness() const {
+     if (population.empty()){
+          return std::numeric_limits<int>::max(); // Or throw error
+     }
+     // Assumes population is sorted or bestFitness member is up-to-date
+     return bestFitness; // Use member variable updated during run
+ }
+
+ bool GeneticAlgorithm::isSolutionFound() const {
+     return solutionFound;
+ }
+
+
+// --- Display/Logging Methods (Implementation - Keep Simple or Move Out) ---
+
+std::string GeneticAlgorithm::displayPopulationInfo() const {
+    std::string info = "Generation: " + std::to_string(currentGeneration) + "\n";
+    info += "Population Size: " + std::to_string(population.size()) + "\n";
+    // Add more detailed population stats if needed (e.g., avg fitness)
+    if (!population.empty()) {
+         info += "Best Fitness in Pop: " + std::to_string(population.front().Fitness) + "\n";
+         // info += "Worst Fitness in Pop: " + std::to_string(population.back().Fitness) + "\n";
+         info += "Best Chromosome Preview: " + population.front().Chromosome.to_string().substr(0, 20) + "...\n";
+    } else {
+        info += "Population is empty.\n";
+    }
+    info += "**************************************************************\n";
+    return info;
+}
+
+std::string GeneticAlgorithm::displaySolutionInfo() const {
+     std::string info;
+     if(!population.empty()){
+          const Genome& best = getBestGenome(); // Get the best genome
+          info += "Final Generation Reached: " + std::to_string(currentGeneration) + "\n";
+          info += "Best Fitness Achieved: " + std::to_string(best.Fitness) + "\n";
+          info += "Best Solution Chromosome: " + best.Chromosome.to_string() + "\n";
+          info += "Converged: " + std::string(converged ? "Yes" : "No") + "\n";
+          info += "Target Found: " + std::string(solutionFound ? "Yes" : "No") + "\n";
+     } else {
+          info += "No solution found - population is empty.\n";
+     }
+    return info;
+}
 
 ================
 File: LICENSE
@@ -988,6 +1523,47 @@ For open source projects, say how it is licensed.
 
 ## Project status
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
+================
+File: test.txt
+================
+├── include/
+│   ├── Configuration.h
+│   ├── GeneticAlgorithm.h
+│   ├── Genome.h
+│   ├── crossover/
+│   │   ├── CrossoverStrategy.h
+│   │   ├── UniformCrossover.h
+│   │   ├── TwoPointCrossover.h
+│   │   └── ...
+│   ├── selection/
+│   │   ├── SelectionStrategy.h
+│   │   └── ...
+│   ├── mutation/
+│   │   ├── MutationStrategy.h
+│   │   └── ...
+│   ├── cache/
+│   │   ├── CacheSimulator.h
+│   │   └── LRUCache.h
+│   └── utils/
+│       ├── RandomUtils.h
+│       ├── FileManager.h
+│       └── ResultAnalyzer.h
+├── src/
+│   ├── main.cpp
+│   ├── GeneticAlgorithm.cpp
+│   ├── Genome.cpp
+│   ├── crossover/
+│   │   ├── UniformCrossover.cpp
+│   │   └── ...
+│   ├── ...
+
+================
+File: .gitignore
+================
+archive/*
+.DS_Store
+.vscode
 
 
 

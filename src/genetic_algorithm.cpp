@@ -1,7 +1,7 @@
 // src/genetic_algorithm.cpp
 #include "genetic_algorithm.h"
 #include "genome.h"
-#include "utilities.h" // For Utils::randRange, Utils::newGenome
+#include "utilities.h"
 #include "constants.h"
 
 #include <algorithm> // For std::sort
@@ -15,7 +15,7 @@
 
 // Constructor
 GeneticAlgorithm::GeneticAlgorithm(std::string ga_name,
-                                 const std::vector<std::bitset<ADDRESS_SIZE>>& addrVec,
+                                 const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec,
                                  std::string crossover_type)
     : name(std::move(ga_name)), // Use std::move for strings
       selectedCrossoverType(std::move(crossover_type)),
@@ -35,11 +35,11 @@ GeneticAlgorithm::GeneticAlgorithm(std::string ga_name,
 
 // --- Initialization ---
 void GeneticAlgorithm::initializePopulation() {
-    population.reserve(POP_SIZE); // Reserve space for efficiency
-    for (int i = 0; i < POP_SIZE; ++i) {
+    population.reserve(Constants::POP_SIZE); // Reserve space for efficiency
+    for (int i = 0; i < Constants::POP_SIZE; ++i) {
         // Create random bitset for chromosome
-        std::string genomeString = Utils::newGenome(SOLUTION_SIZE); // Pass size
-        std::bitset<SOLUTION_SIZE> genomeBits(genomeString);
+        std::string genomeString = Utils::newGenome(Constants::SOLUTION_SIZE); // Pass size
+        std::bitset<Constants::SOLUTION_SIZE> genomeBits(genomeString);
         // Add new Genome to population (constructor calculates initial fitness)
         population.emplace_back(genomeBits, addressVector);
     }
@@ -55,7 +55,7 @@ void GeneticAlgorithm::run() {
     int convergenceCounter = 0;
     int previousBestFitness = bestFitness;
 
-    while (!solutionFound && !converged && currentGeneration < MAX_GEN) {
+    while (!solutionFound && !converged && currentGeneration < Constants::MAX_GEN) {
 
         sortPopulation();
         checkTerminationConditions(); // Check convergence and target fitness
@@ -66,7 +66,7 @@ void GeneticAlgorithm::run() {
 
         // --- Create Next Generation ---
         std::vector<Genome> newPopulation;
-        newPopulation.reserve(POP_SIZE);
+        newPopulation.reserve(Constants::POP_SIZE);
 
         performElitism(newPopulation);
         performSelectionAndCrossover(newPopulation);
@@ -82,9 +82,9 @@ void GeneticAlgorithm::run() {
              previousBestFitness = bestFitness;
          }
 
-         if (convergenceCounter >= CONVERGENCE_ALLOWENCE) {
+         if (convergenceCounter >= Constants::CONVERGENCE_ALLOWENCE) {
              converged = true;
-             std::cout << "INFO: GA converged after " << CONVERGENCE_ALLOWENCE
+             std::cout << "INFO: GA converged after " << Constants::CONVERGENCE_ALLOWENCE
                        << " generations without fitness improvement." << std::endl;
          }
 
@@ -128,7 +128,7 @@ void GeneticAlgorithm::checkTerminationConditions() {
 }
 
 void GeneticAlgorithm::performElitism(std::vector<Genome>& newPopulation) {
-    int elitismCount = static_cast<int>((ELITISM_PERCENTAGE / 100.0) * POP_SIZE);
+    int elitismCount = static_cast<int>((Constants::ELITISM_RATE / 100.0) * Constants::POP_SIZE);
     elitismCount = std::min(elitismCount, static_cast<int>(population.size())); // Ensure not exceeding pop size
 
     for (int i = 0; i < elitismCount; ++i) {
@@ -137,9 +137,9 @@ void GeneticAlgorithm::performElitism(std::vector<Genome>& newPopulation) {
 }
 
 void GeneticAlgorithm::performSelectionAndCrossover(std::vector<Genome>& newPopulation) {
-    int elitismCount = static_cast<int>((ELITISM_PERCENTAGE / 100.0) * POP_SIZE);
-    int remainingPopulation = POP_SIZE - elitismCount;
-    int parentPoolSize = POP_SIZE / 2; // Original logic selected from top 50%
+    int elitismCount = static_cast<int>((Constants::ELITISM_RATE / 100.0) * Constants::POP_SIZE);
+    int remainingPopulation = Constants::POP_SIZE - elitismCount;
+    int parentPoolSize = Constants::POP_SIZE / 2; // Original logic selected from top 50%
 
     // Ensure parentPoolSize is valid
     parentPoolSize = std::max(1, std::min(parentPoolSize, static_cast<int>(population.size())));
@@ -159,21 +159,18 @@ void GeneticAlgorithm::performSelectionAndCrossover(std::vector<Genome>& newPopu
         const Genome& parentB = population[parentB_idx];
 
         // Crossover
-        std::pair<Genome, Genome> offspring;
-        if (selectedCrossoverType == "UX") {
-            offspring = parentA.UX(parentB);
-        } else if (selectedCrossoverType == "2PX") {
-            offspring = parentA.TWOPX(parentB);
-        } else if (selectedCrossoverType == "SX") {
-            offspring = parentA.SX(parentB);
-        } else if (selectedCrossoverType == "BAX") {
-            offspring = parentA.BAX(parentB);
-        }
-         // No need for else, constructor validated type
+        std::pair<Genome, Genome> offspring = [&]() {
+            if (selectedCrossoverType == "UX") return parentA.UX(parentB);
+            if (selectedCrossoverType == "2PX") return parentA.TWOPX(parentB);
+            if (selectedCrossoverType == "SX") return parentA.SX(parentB);
+            if (selectedCrossoverType == "BAX") return parentA.BAX(parentB);
+            // Should not happen due to constructor validation, but handle defensively:
+            throw std::runtime_error("Internal error: Invalid crossover type in crossover execution: " + selectedCrossoverType);
+        }(); // Immediately invoke the lambda to get the pair
 
         // Add offspring to new population
         newPopulation.push_back(std::move(offspring.first)); // Move offspring
-        if (newPopulation.size() < POP_SIZE) { // Add second offspring if space allows
+        if (newPopulation.size() < Constants::POP_SIZE) { // Add second offspring if space allows
             newPopulation.push_back(std::move(offspring.second));
         }
          // Ensure we don't exceed POP_SIZE, although the loop condition should prevent this if POP_SIZE - elitismCount is even.

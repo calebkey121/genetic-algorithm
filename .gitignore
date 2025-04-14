@@ -1,3 +1,5 @@
 archive/*
 .DS_Store
 .vscode
+build/
+repomix-output.txt

@@ -1,6 +1,6 @@
 #include "genome.h"
 #include "lru_cache.h"
-#include "utilities.h
+#include "utilities.h"
 #include <stdexcept>
 #include <cstdlib>
 #include <ctime>
@@ -15,7 +15,7 @@ Genome::Genome(std::bitset<Constants::SOLUTION_SIZE> chromosome, const std::vect
 
 // --- Crossover Implementations ---
 
-std::pair<Genome, Genome> Genome::UX(Genome mate) {
+std::pair<Genome, Genome> Genome::UX(Genome mate) const {
     // Pseudo: Determine the reigons for inheritance
     //         Generate a random number to determine crossover
     //         Assign offspring gene based on probability - parent A, B, or mutate
@@ -48,7 +48,7 @@ std::pair<Genome, Genome> Genome::UX(Genome mate) {
     return std::make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
 }
 
-std::pair<Genome, Genome> Genome::TWOPX(Genome mate) {
+std::pair<Genome, Genome> Genome::TWOPX(Genome mate) const {
     // https://stackoverflow.com/questions/7145583/two-point-crossover-operation
     std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
     constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
@@ -82,7 +82,7 @@ std::pair<Genome, Genome> Genome::TWOPX(Genome mate) {
     return std::make_pair(Genome(offspringBitsets.first, addressVector), Genome(offspringBitsets.second, addressVector));
 }
 
-std::pair<Genome, Genome> Genome::SX(Genome mate) {
+std::pair<Genome, Genome> Genome::SX(Genome mate) const {
      std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
 
     constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
@@ -121,7 +121,7 @@ std::pair<Genome, Genome> Genome::SX(Genome mate) {
 }
 
 
-std::pair<Genome, Genome> Genome::BAX(Genome mate) {
+std::pair<Genome, Genome> Genome::BAX(Genome mate) const {
     // Simplified BAX: Chooses between UX and TWOPX based on some criteria
     // Example criteria: difference in fitness, or a random choice.
 
@@ -155,7 +155,7 @@ int Genome::cal_fitness() {
     }
 
 
-    std::bitset indexBits;
+    std::bitset<3> indexBits;
     for (int i = 0; i < 100; ++i) {
         // Check array bounds carefully
         int base_idx = i * 3;

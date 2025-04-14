@@ -30,10 +30,10 @@ public:
     int cal_fitness();
 
     // Crossover operators
-    std::pair<Genome, Genome> UX(Genome mate);
-    std::pair<Genome, Genome> TWOPX(Genome mate);
-    std::pair<Genome, Genome> SX(Genome mate);
-    std::pair<Genome, Genome> BAX(Genome mate);
+    std::pair<Genome, Genome> UX(Genome mate) const;
+    std::pair<Genome, Genome> TWOPX(Genome mate) const;
+    std::pair<Genome, Genome> SX(Genome mate) const;
+    std::pair<Genome, Genome> BAX(Genome mate) const;
 
     // Comparison operator for sorting
     bool operator<(const Genome& other) const; // Mark as const
