@@ -6,7 +6,7 @@
 #include <ctime>
 
 // Constructor Implementation
-Genome::Genome(std::bitset<SOLUTION_SIZE> chromosome, const std::vector<std::bitset<ADDRESS_SIZE>>& addrVec)
+Genome::Genome(std::bitset<Constants::SOLUTION_SIZE> chromosome, const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec)
     : Chromosome(chromosome), addressVector(addrVec)
 {
     Fitness = cal_fitness(); // Calculate fitness upon construction
@@ -20,15 +20,15 @@ std::pair<Genome, Genome> Genome::UX(Genome mate) {
     //         Generate a random number to determine crossover
     //         Assign offspring gene based on probability - parent A, B, or mutate
 
-    std::pair<std::bitset<SOLUTION_SIZE>, std::bitset<SOLUTION_SIZE>> offspringBitsets;
+    std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
 
     // Reigons for inheritance
     // Use constexpr or const from constants.h later
-    constexpr float mutationRate = static_cast<float>(MUTATION_CHANCE) / 100.0f;
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
     float parentRangeA = (1.0f - mutationRate) / 2.0f; // this parent (A)
     float parentRangeB = 1.0f - mutationRate;           // mate (B)
 
-    for (int i = 0; i < SOLUTION_SIZE; i++) {
+    for (int i = 0; i < Constants::SOLUTION_SIZE; i++) {
         // Replace with <random> later
         float p = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f; // Higher precision for probability
 
@@ -50,16 +50,16 @@ std::pair<Genome, Genome> Genome::UX(Genome mate) {
 
 std::pair<Genome, Genome> Genome::TWOPX(Genome mate) {
     // https://stackoverflow.com/questions/7145583/two-point-crossover-operation
-    std::pair<std::bitset<SOLUTION_SIZE>, std::bitset<SOLUTION_SIZE>> offspringBitsets;
-    constexpr float mutationRate = static_cast<float>(MUTATION_CHANCE) / 100.0f;
+    std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
     float mutationThreshold = 1.0f - mutationRate;
 
     // Generate two distinct random locations, making sure that B > A
     // Replace with <random> later
-    int randLocationA = Utils::randRange(0, SOLUTION_SIZE - 2); // Ensure A can be < B
-    int randLocationB = Utils::randRange(randLocationA + 1, SOLUTION_SIZE - 1); // Ensure B > A
+    int randLocationA = Utils::randRange(0, Constants::SOLUTION_SIZE - 2); // Ensure A can be < B
+    int randLocationB = Utils::randRange(randLocationA + 1, Constants::SOLUTION_SIZE - 1); // Ensure B > A
 
-    for (int i = 0; i < SOLUTION_SIZE; ++i) {
+    for (int i = 0; i < Constants::SOLUTION_SIZE; ++i) {
          // Replace with <random> later
         float p_mut = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
 
@@ -83,17 +83,17 @@ std::pair<Genome, Genome> Genome::TWOPX(Genome mate) {
 }
 
 std::pair<Genome, Genome> Genome::SX(Genome mate) {
-     std::pair<std::bitset<SOLUTION_SIZE>, std::bitset<SOLUTION_SIZE>> offspringBitsets;
+     std::pair<std::bitset<Constants::SOLUTION_SIZE>, std::bitset<Constants::SOLUTION_SIZE>> offspringBitsets;
 
-    constexpr float mutationRate = static_cast<float>(MUTATION_CHANCE) / 100.0f;
-    constexpr float segRate = static_cast<float>(SEG_X_CHANCE) / 100.0f;
+    constexpr float mutationRate = static_cast<float>(Constants::MUTATION_RATE) / 100.0f;
+    constexpr float segRate = static_cast<float>(Constants::SEG_X_SWITCH_RATE) / 100.0f;
 
     float mutationThreshold = 1.0f - mutationRate;
     float segmentationThreshold = segRate; // Chance to switch parent dominance
 
     bool parent1Dominant = true; // Start with parent1 (this) dominating offspring1
 
-    for (int i = 0; i < SOLUTION_SIZE; i++) {
+    for (int i = 0; i < Constants::SOLUTION_SIZE; i++) {
         float p_mut = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
         float p_seg = static_cast<float>(Utils::randRange(0, 10000)) / 10000.0f;
 
@@ -149,7 +149,7 @@ int Genome::cal_fitness() {
     }
 
     // Ensure chromosome size matches expected indexing logic (100 addresses * 3 bits/index = 300 bits)
-    if (SOLUTION_SIZE != 300) {
+    if (Constants::SOLUTION_SIZE != 300) {
          // Handle error: SOLUTION_SIZE incompatible with fitness function
          return 1000001; // Penalize heavily
     }
@@ -159,7 +159,7 @@ int Genome::cal_fitness() {
     for (int i = 0; i < 100; ++i) {
         // Check array bounds carefully
         int base_idx = i * 3;
-        if (base_idx + 2 >= SOLUTION_SIZE) {
+        if (base_idx + 2 >= Constants::SOLUTION_SIZE) {
              // Handle error: Chromosome too short for this loop iteration
              return 1000002; // Penalize
         }

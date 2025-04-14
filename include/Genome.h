@@ -5,10 +5,8 @@
 #include <bitset>
 #include <string>
 #include <utility>
+#include "constants.h"
 
-// (Move to constants.h later)
-#define SOLUTION_SIZE 300
-#define ADDRESS_SIZE 32
 #define MUTATION_CHANCE 5
 #define SEG_X_CHANCE 40
 const std::string genes = "10";
@@ -21,12 +19,12 @@ namespace Utils {
 
 class Genome {
 public:
-    std::bitset<SOLUTION_SIZE> Chromosome;
-    std::vector<std::bitset<ADDRESS_SIZE>> addressVector;
+    std::bitset<Constants::SOLUTION_SIZE> Chromosome;
+    std::vector<std::bitset<Constants::ADDRESS_SIZE>> addressVector;
     int Fitness;
 
     // Constructor
-    Genome(std::bitset<SOLUTION_SIZE> chromosome, const std::vector<std::bitset<ADDRESS_SIZE>>& addrVec);
+    Genome(std::bitset<Constants::SOLUTION_SIZE> chromosome, const std::vector<std::bitset<Constants::ADDRESS_SIZE>>& addrVec);
 
     // Fitness calculation
     int cal_fitness();
