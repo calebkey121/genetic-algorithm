@@ -1,0 +1,123 @@
+********** Experiment Results for Crossover: SX **********
+Timestamp: Mon Apr 14 12:58:50 2025
+Number of Executions: 20
+Population Size: 100
+Max Generations: 400
+Mutation Rate: 0.05
+Elitism Rate: 0.05
+Convergence Allowance: 25
+Address Trace Size: 100
+******************************************************************
+
+--- Run: GA1 ---
+GA1 Fitness (Evictions): 34
+GA1 Generations Run: 136
+GA1 Execution Time (ms): 123.884
+---------------------
+--- Run: GA2 ---
+GA2 Fitness (Evictions): 36
+GA2 Generations Run: 137
+GA2 Execution Time (ms): 125.256
+---------------------
+--- Run: GA3 ---
+GA3 Fitness (Evictions): 32
+GA3 Generations Run: 143
+GA3 Execution Time (ms): 127.242
+---------------------
+--- Run: GA4 ---
+GA4 Fitness (Evictions): 33
+GA4 Generations Run: 107
+GA4 Execution Time (ms): 97.9855
+---------------------
+--- Run: GA5 ---
+GA5 Fitness (Evictions): 30
+GA5 Generations Run: 123
+GA5 Execution Time (ms): 108.106
+---------------------
+--- Run: GA6 ---
+GA6 Fitness (Evictions): 32
+GA6 Generations Run: 117
+GA6 Execution Time (ms): 106.279
+---------------------
+--- Run: GA7 ---
+GA7 Fitness (Evictions): 35
+GA7 Generations Run: 91
+GA7 Execution Time (ms): 84.4214
+---------------------
+--- Run: GA8 ---
+GA8 Fitness (Evictions): 30
+GA8 Generations Run: 141
+GA8 Execution Time (ms): 135.915
+---------------------
+--- Run: GA9 ---
+GA9 Fitness (Evictions): 27
+GA9 Generations Run: 128
+GA9 Execution Time (ms): 113.997
+---------------------
+--- Run: GA10 ---
+GA10 Fitness (Evictions): 32
+GA10 Generations Run: 152
+GA10 Execution Time (ms): 135.692
+---------------------
+--- Run: GA11 ---
+GA11 Fitness (Evictions): 31
+GA11 Generations Run: 128
+GA11 Execution Time (ms): 114.554
+---------------------
+--- Run: GA12 ---
+GA12 Fitness (Evictions): 36
+GA12 Generations Run: 87
+GA12 Execution Time (ms): 80.4852
+---------------------
+--- Run: GA13 ---
+GA13 Fitness (Evictions): 32
+GA13 Generations Run: 129
+GA13 Execution Time (ms): 115.081
+---------------------
+--- Run: GA14 ---
+GA14 Fitness (Evictions): 35
+GA14 Generations Run: 120
+GA14 Execution Time (ms): 109.099
+---------------------
+--- Run: GA15 ---
+GA15 Fitness (Evictions): 36
+GA15 Generations Run: 77
+GA15 Execution Time (ms): 71.8812
+---------------------
+--- Run: GA16 ---
+GA16 Fitness (Evictions): 32
+GA16 Generations Run: 176
+GA16 Execution Time (ms): 157.524
+---------------------
+--- Run: GA17 ---
+GA17 Fitness (Evictions): 31
+GA17 Generations Run: 173
+GA17 Execution Time (ms): 154.692
+---------------------
+--- Run: GA18 ---
+GA18 Fitness (Evictions): 32
+GA18 Generations Run: 123
+GA18 Execution Time (ms): 110.537
+---------------------
+--- Run: GA19 ---
+GA19 Fitness (Evictions): 35
+GA19 Generations Run: 82
+GA19 Execution Time (ms): 76.0274
+---------------------
+--- Run: GA20 ---
+GA20 Fitness (Evictions): 30
+GA20 Generations Run: 146
+GA20 Execution Time (ms): 129.095
+---------------------
+
+********** Summary Statistics **********
+Fitness (Evictions) - Min: 27
+Fitness (Evictions) - Max: 36
+Fitness (Evictions) - Avg: 32.55
+Generations Run     - Min: 77
+Generations Run     - Max: 176
+Generations Run     - Avg: 125.80
+Execution Time (ms) - Min: 71.88
+Execution Time (ms) - Max: 157.52
+Execution Time (ms) - Avg: 113.89
+**************************************
